@@ -55,13 +55,9 @@ jobs:
       - name: Install Flutter Dependencies
         run: flutter pub get
 
-      # 🟢 ปรับแก้จุดนี้: เตรียม iOS Engine/Pods และสั่ง pod install ซิงค์ Podfile.lock ให้ตรงกัน
+      # 🟢 ให้ Flutter Build แบบ --no-codesign เพื่อสร้าง Podfile, Pods และ GeneratedPluginRegistrant อัตโนมัติ
       - name: Prepare iOS Native Configs
-        run: |
-          flutter precache --ios
-          cd ios
-          pod install --repo-update
-          cd ..
+        run: flutter build ios --no-codesign
 
       # แสดง Log เปรียบเทียบเวอร์ชัน Package ปัจจุบัน vs ล่าสุด
       - name: Check Dependencies Outdated
