@@ -21,6 +21,13 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Color(0xFF14131D),
         primaryColor: Color(0xFF6366F1),
         barBackgroundColor: Color(0xFF1F1D2B),
+        // กำหนด Font iOS (.SF Pro Text) แบบ Global
+        textTheme: CupertinoTextThemeData(
+          textStyle: TextStyle(
+            fontFamily: '.SF Pro Text',
+            color: Colors.white,
+          ),
+        ),
       ),
       home: MainNavigationScreen(),
     );
@@ -251,7 +258,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF272535),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16), // ปรับความโค้ง Card หลัก
         border: Border.all(color: Colors.white.withOpacity(0.03)),
       ),
       child: Column(
@@ -262,11 +269,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(title, style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500)),
+              // ล็อคขนาดกล่อง Icon ให้เป็นจัตุรัสคงที่ (28x28)
               Container(
-                padding: const EdgeInsets.all(6),
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: accentColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(8), // ความโค้งมนกล่อง Icon
                   border: Border.all(color: accentColor.withOpacity(0.3)),
                 ),
                 child: FaIcon(icon, size: 12, color: accentColor),
