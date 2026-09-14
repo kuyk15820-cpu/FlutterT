@@ -95,14 +95,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
           ),
 
-          // Floating Capsule Navigation Bar ด้านล่าง
+          // Floating Capsule Navigation Bar ด้านล่าง (สไลด์ไฮไลต์ลื่นๆ)
           Positioned(
-            left: 0,
-            right: 0,
-            bottom: 24,
+            left: 20,
+            right: 20,
+            bottom: 36,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                height: 56,
+                padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: const Color(0xFF1E1D2B),
                   borderRadius: BorderRadius.circular(40),
@@ -115,14 +116,39 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     ),
                   ],
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildNavItem(0, FontAwesomeIcons.chartPie, 'Dashboard'),
-                    _buildNavItem(1, FontAwesomeIcons.key, 'Keys'),
-                    _buildNavItem(2, FontAwesomeIcons.mobile, 'Devices'),
-                    _buildNavItem(3, FontAwesomeIcons.box, 'Packages'),
-                  ],
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final tabWidth = constraints.maxWidth / 4;
+                    return Stack(
+                      children: [
+                        // Sliding Pill Indicator
+                        AnimatedPositioned(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.fastOutSlowIn,
+                          left: _selectedIndex * tabWidth,
+                          top: 0,
+                          bottom: 0,
+                          width: tabWidth,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2A293A),
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
+                        ),
+
+                        // Navigation Buttons
+                        Row(
+                          children: [
+                            _buildNavItem(0, FontAwesomeIcons.chartPie, 'Dashboard', tabWidth),
+                            _buildNavItem(1, FontAwesomeIcons.key, 'Keys', tabWidth),
+                            _buildNavItem(2, FontAwesomeIcons.mobile, 'Devices', tabWidth),
+                            _buildNavItem(3, FontAwesomeIcons.box, 'Packages', tabWidth),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -132,35 +158,34 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  // ปุ่ม Capsule Navigation Item
-  Widget _buildNavItem(int index, dynamic icon, String label) {
+  // ปุ่ม Navigation Item
+  Widget _buildNavItem(int index, dynamic icon, String label, double width) {
     final isActive = _selectedIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedIndex = index),
-      behavior: HitTestBehavior.opaque,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF2A293A) : Colors.transparent,
-          borderRadius: BorderRadius.circular(30),
-        ),
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minSize: 0,
+      pressedOpacity: 1.0, // ปิดแฟลชวูบตอนแตะ
+      onPressed: () => setState(() => _selectedIndex = index),
+      child: SizedBox(
+        width: width,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             FaIcon(
               icon,
               size: 16,
               color: isActive ? const Color(0xFF6366F1) : const Color(0xFF8B8D9B),
             ),
-            const SizedBox(height: 4),
-            Text(
-              label,
+            const SizedBox(height: 3),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
               style: TextStyle(
                 fontSize: 11,
-                fontWeight: FontWeight.w500,
+                fontFamily: '.SF Pro Text',
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                 color: isActive ? const Color(0xFF6366F1) : const Color(0xFF8B8D9B),
               ),
+              child: Text(label),
             ),
           ],
         ),
@@ -188,7 +213,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
         final stats = snapshot.data!;
         return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -258,7 +283,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF272535),
-        borderRadius: BorderRadius.circular(16), // ปรับความโค้ง Card หลัก
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withOpacity(0.03)),
       ),
       child: Column(
@@ -269,14 +294,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(title, style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500)),
-              // ล็อคขนาดกล่อง Icon ให้เป็นจัตุรัสคงที่ (28x28)
               Container(
                 width: 28,
                 height: 28,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: accentColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8), // ความโค้งมนกล่อง Icon
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: accentColor.withOpacity(0.3)),
                 ),
                 child: FaIcon(icon, size: 12, color: accentColor),
