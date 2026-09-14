@@ -36,7 +36,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 1. ติดตั้ง Flutter SDK (แทน Node.js)
+      # 1. ติดตั้ง Flutter SDK
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -54,6 +54,10 @@ jobs:
       # 2. ดึง Dependencies ของ Flutter
       - name: Install Flutter Dependencies
         run: flutter pub get
+
+      # 🟢 เพิ่ม Step นี้เพื่อแสดง Log เปรียบเทียบเวอร์ชัน Package ปัจจุบัน vs ล่าสุด
+      - name: Check Dependencies Outdated
+        run: flutter pub outdated
 
       # 3. ปรับแต่ง App Name, Bundle ID และ Version ใน Xcode Project ของ Flutter (Runner.xcodeproj)
       - name: Update iOS Metadata
