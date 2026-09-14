@@ -51,17 +51,19 @@ jobs:
       - name: Install ldid
         run: brew install ldid
 
-      # 2. ดึง Dependencies ของ Flutter
+      # 2. ลบ pubspec.lock เก่าตกค้าง แล้วดึง Dependencies ใหม่ตาม pubspec.yaml
       - name: Install Flutter Dependencies
-        run: flutter pub get
+        run: |
+          rm -f pubspec.lock
+          flutter pub get
 
-      # 🟢 ให้ Flutter Build แบบ --no-codesign เพื่อสร้าง Podfile, Pods และ GeneratedPluginRegistrant อัตโนมัติ
+      # ให้ Flutter Build แบบ --no-codesign เพื่อสร้าง Podfile, Pods และ Native Configs
       - name: Prepare iOS Native Configs
         run: flutter build ios --no-codesign
 
-      # แสดง Log เปรียบเทียบเวอร์ชัน Package ปัจจุบัน vs ล่าสุด
+      # 🟢 แสดง Log รายชื่อ Package ทั้งหมด (รวมตัวที่เป็นเวอร์ชันล่าสุดแล้ว)
       - name: Check Dependencies Outdated
-        run: flutter pub outdated
+        run: flutter pub outdated --show-all
 
       # 3. ปรับแต่ง App Name, Bundle ID และ Version ใน Xcode Project ของ Flutter (Runner.xcodeproj)
       - name: Update iOS Metadata
