@@ -131,7 +131,7 @@ class DashboardTab extends StatelessWidget {
                     'Active Keys',
                     '${stats.keys.active}',
                     'Active Key',
-                    FontAwesomeIcons.shieldCheck,
+                    FontAwesomeIcons.shieldHalved,
                     const Color(0xFF3B82F6),
                   ),
                   _buildStatCard(
