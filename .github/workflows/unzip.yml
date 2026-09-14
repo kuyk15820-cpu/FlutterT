@@ -55,10 +55,10 @@ jobs:
       - name: Install Flutter Dependencies
         run: flutter pub get
 
-      # 🟢 เพิ่ม Step นี้เพื่อสร้าง GeneratedPluginRegistrant.m และ Link CocoaPods ให้ครบถ้วน
+      # 🟢 เตรียมไฟล์ Native Configs โดยใส่ --no-codesign เพื่อข้ามการเช็ก Certificate ในขั้นตอนนี้
       - name: Prepare iOS Native Configs
         run: |
-          flutter build ios --config-only
+          flutter build ios --config-only --no-codesign
           cd ios && pod install
 
       # แสดง Log เปรียบเทียบเวอร์ชัน Package ปัจจุบัน vs ล่าสุด
