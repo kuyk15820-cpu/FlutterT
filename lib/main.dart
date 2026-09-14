@@ -59,7 +59,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         leading: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(FontAwesomeIcons.shieldHalved, color: Color(0xFF6366F1), size: 18),
+            FaIcon(FontAwesomeIcons.shieldHalved, color: Color(0xFF6366F1), size: 18),
             SizedBox(width: 8),
             Text(
               'FX-Adm',
@@ -126,7 +126,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   // ปุ่ม Capsule Navigation Item
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(int index, dynamic icon, String label) {
     final isActive = _selectedIndex == index;
     return GestureDetector(
       onTap: () => setState(() => _selectedIndex = index),
@@ -141,7 +141,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
+            FaIcon(
               icon,
               size: 16,
               color: isActive ? const Color(0xFF6366F1) : const Color(0xFF8B8D9B),
@@ -230,12 +230,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title, IconData icon) {
+  Widget _buildSectionTitle(String title, dynamic icon) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Icon(icon, size: 12, color: const Color(0xFF94A3B8)),
+          FaIcon(icon, size: 12, color: const Color(0xFF94A3B8)),
           const SizedBox(width: 6),
           Text(
             title,
@@ -246,7 +246,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, String subtitle, IconData icon, Color accentColor) {
+  Widget _buildStatCard(String title, String value, String subtitle, dynamic icon, Color accentColor) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -269,7 +269,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: accentColor.withOpacity(0.3)),
                 ),
-                child: Icon(icon, size: 12, color: accentColor),
+                child: FaIcon(icon, size: 12, color: accentColor),
               ),
             ],
           ),
