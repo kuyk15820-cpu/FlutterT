@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+
 import 'models/dashboard_stats.dart';
+import 'screens/dashboard_tab.dart';
 import 'services/api_service.dart';
 
 void main() {
@@ -21,7 +23,6 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Color(0xFF14131D),
         primaryColor: Color(0xFF6366F1),
         barBackgroundColor: Color(0xFF1F1D2B),
-        // กำหนด Font iOS (.SF Pro Text) แบบ Global
         textTheme: CupertinoTextThemeData(
           textStyle: TextStyle(
             fontFamily: '.SF Pro Text',
@@ -87,7 +88,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             child: IndexedStack(
               index: _selectedIndex,
               children: [
-                _buildDashboardTab(),
+                DashboardTab(statsFuture: _statsFuture),
                 const Center(child: Text('Key Management', style: TextStyle(color: Colors.white))),
                 const Center(child: Text('Device History', style: TextStyle(color: Colors.white))),
                 const Center(child: Text('Package Settings', style: TextStyle(color: Colors.white))),
@@ -95,7 +96,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
           ),
 
-          // Floating Capsule Navigation Bar ด้านล่าง (สไลด์ไฮไลต์ลื่นๆ)
+          // Floating Capsule Navigation Bar ด้านล่าง
           Positioned(
             left: 20,
             right: 20,
@@ -164,7 +165,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return CupertinoButton(
       padding: EdgeInsets.zero,
       minSize: 0,
-      pressedOpacity: 1.0, // ปิดแฟลชวูบตอนแตะ
+      pressedOpacity: 1.0,
       onPressed: () => setState(() => _selectedIndex = index),
       child: SizedBox(
         width: width,
@@ -189,127 +190,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // หน้า Dashboard Tab
-  Widget _buildDashboardTab() {
-    return FutureBuilder<DashboardStats>(
-      future: _statsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CupertinoActivityIndicator(radius: 14));
-        } else if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Error: ${snapshot.error}',
-              style: const TextStyle(color: CupertinoColors.systemRed),
-            ),
-          );
-        } else if (!snapshot.hasData) {
-          return const Center(child: Text('No Data', style: TextStyle(color: Colors.white)));
-        }
-
-        final stats = snapshot.data!;
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 110),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Overview',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-              const SizedBox(height: 20),
-              
-              // Keys Section
-              _buildSectionTitle('KEY STATS', FontAwesomeIcons.key),
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.4,
-                children: [
-                  _buildStatCard('Total Keys', '${stats.keys.total}', 'All generated keys', FontAwesomeIcons.key, const Color(0xFFA855F7)),
-                  _buildStatCard('Active Keys', '${stats.keys.active}', 'Currently active', FontAwesomeIcons.circleCheck, const Color(0xFF22C55E)),
-                  _buildStatCard('Banned Keys', '${stats.keys.banned}', 'Access revoked', FontAwesomeIcons.ban, const Color(0xFFEF4444)),
-                  _buildStatCard('Expired Keys', '${stats.keys.expired}', 'Time limit reached', FontAwesomeIcons.clock, const Color(0xFFEAB308)),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Devices & Packages Section
-              _buildSectionTitle('SYSTEM STATS', FontAwesomeIcons.server),
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.4,
-                children: [
-                  _buildStatCard('Total Devices', '${stats.totalDevices}', 'Registered HWIDs', FontAwesomeIcons.mobileScreen, const Color(0xFF3B82F6)),
-                  _buildStatCard('Total Packages', '${stats.packages.total}', 'Available plans', FontAwesomeIcons.box, const Color(0xFF94A3B8)),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildSectionTitle(String title, dynamic icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          FaIcon(icon, size: 12, color: const Color(0xFF94A3B8)),
-          const SizedBox(width: 6),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF94A3B8), letterSpacing: 0.5),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String title, String value, String subtitle, dynamic icon, Color accentColor) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF272535),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.03)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500)),
-              Container(
-                width: 28,
-                height: 28,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: accentColor.withOpacity(0.3)),
-                ),
-                child: FaIcon(icon, size: 12, color: accentColor),
-              ),
-            ],
-          ),
-          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-          Text(subtitle, style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-        ],
       ),
     );
   }
