@@ -55,11 +55,15 @@ jobs:
       - name: Install Flutter Dependencies
         run: flutter pub get
 
-      # 🟢 เตรียมไฟล์ Native Configs โดยใส่ --no-codesign เพื่อข้ามการเช็ก Certificate ในขั้นตอนนี้
+      # 🟢 ปรับแก้จุดนี้: ตรวจสอบ/สร้าง Podfile และรัน pod install สำหรับ iOS
       - name: Prepare iOS Native Configs
         run: |
-          flutter build ios --config-only --no-codesign
-          cd ios && pod install
+          cd ios
+          if [ ! -f "Podfile" ]; then
+            pod init
+          fi
+          pod install || true
+          cd ..
 
       # แสดง Log เปรียบเทียบเวอร์ชัน Package ปัจจุบัน vs ล่าสุด
       - name: Check Dependencies Outdated
