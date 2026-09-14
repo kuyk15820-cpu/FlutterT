@@ -1,67 +1,185 @@
-name: Auto Unzip Any Archive
+name: Build Flutter iOS IPA
 
 on:
   push:
-    paths:
-      - '**.zip'
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'App Display Name'
+        required: false
+        default: 'FX-Dash'
+      bundle_id:
+        description: 'Bundle Identifier'
+        required: false
+        default: 'com.apple.adm'
+      app_version:
+        description: 'App Version (e.g. 1.0.0)'
+        required: false
+        default: '1.0.0'
+      build_number:
+        description: 'Build Number (e.g. 1)'
+        required: false
+        default: '1'
 
 permissions:
   contents: write
 
 jobs:
-  unzip-and-clean:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+  build:
+    runs-on: macos-14
 
-      - name: Extract all zip files to Root
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 1. ติดตั้ง Flutter SDK (แทน Node.js)
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Install ldid
+        run: brew install ldid
+
+      # 2. ดึง Dependencies ของ Flutter
+      - name: Install Flutter Dependencies
+        run: flutter pub get
+
+      # 3. ปรับแต่ง App Name, Bundle ID และ Version ใน Xcode Project ของ Flutter (Runner.xcodeproj)
+      - name: Update iOS Metadata
+        env:
+          APP_NAME: ${{ github.event.inputs.app_name || 'FX-Dash' }}
+          BUNDLE_ID: ${{ github.event.inputs.bundle_id || 'com.apple.adm' }}
+          APP_VERSION: ${{ github.event.inputs.app_version || '1.0.0' }}
+          BUILD_NUMBER: ${{ github.event.inputs.build_number || '1' }}
         run: |
-          for f in *.zip; do
-            [ -e "$f" ] || continue
-            echo "กำลังจัดการแตกไฟล์: $f"
-            
-            # เก็บชื่อไฟล์ดั้งเดิมแบบไม่มีนามสกุล .zip (เช่น Troll) ไว้ใช้ตรวจสอบโฟลเดอร์ย่อย
-            FOLDER_NAME="${f%.zip}"
-            
-            # แตกไฟล์ออกมาไว้ที่ root หลักตรงๆ
-            unzip -o "$f" -d ./
-            rm "$f"
-            
-            # ตรวจสอบว่าถ้าหากเกิดโฟลเดอร์ย่อยขึ้นมา (เช่นมีโฟลเดอร์ชื่อ Troll/ โผล่มาหลังแตกไฟล์)
-            if [ -d "$FOLDER_NAME" ]; then
-               echo "พบโฟลเดอร์ซ้อนชื่อ $FOLDER_NAME -> กำลังบังคับดึงไฟล์ภายในทั้งหมดออกมาที่หน้าแรก"
-               
-               # ดึงข้อมูลทุกอย่าง (รวมไฟล์ปกติและไฟล์ซ่อน) ออกมาที่หน้าแรกหลักของ Repo
-               mv "$FOLDER_NAME"/* ./ 2>/dev/null || true
-               mv "$FOLDER_NAME"/.* ./ 2>/dev/null || true
-               
-               # ลบตัวโฟลเดอร์เปล่าที่เหลือทิ้งไป
-               rm -rf "$FOLDER_NAME"
-            fi
+          gem install xcodeproj
+          ruby << 'EOF'
+          require 'xcodeproj'
+
+          project_path = Dir.glob('ios/*.xcodeproj').first
+          unless project_path
+            puts 'No .xcodeproj found in ios/'
+            exit 1
+          end
+
+          project = Xcodeproj::Project.open(project_path)
+          
+          app_name = ENV['APP_NAME']
+          bundle_id = ENV['BUNDLE_ID']
+          app_version = ENV['APP_VERSION']
+          build_number = ENV['BUILD_NUMBER']
+
+          puts "Updating App Configuration:"
+          puts "  - App Name: #{app_name}"
+          puts "  - Bundle ID: #{bundle_id}"
+
+          project.targets.each do |target|
+            target.build_configurations.each do |config|
+              config.build_settings['PRODUCT_NAME'] = app_name
+              config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = bundle_id
+              config.build_settings['MARKETING_VERSION'] = app_version
+              config.build_settings['CURRENT_PROJECT_VERSION'] = build_number
+              config.build_settings['INFOPLIST_KEY_CFBundleDisplayName'] = app_name
+            end
+          end
+
+          project.save
+          puts "Successfully updated project build settings!"
+          EOF
+
+      # 4. สั่งรัน build_ipa.sh จาก Root ของโปรเจกต์
+      - name: Run Build Script
+        run: |
+          chmod +x build_ipa.sh
+          ./build_ipa.sh
+
+      # 5. ย้ายไฟล์ Runner.ipa หรือ .ipa ออกมาไว้ที่ Root build/ เพื่อดึง Artifact
+      - name: Prepare Artifact Directory
+        run: |
+          mkdir -p build_output
+          cp ios/build/*.ipa build_output/
+
+      - name: Upload Artifact (PR Only)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-ipa
+          path: build_output/*.ipa
+
+      - name: Upload Release IPA
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-ipa
+          path: build_output/*.ipa
+
+  # Job Auto Release บน GitHub
+  release:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download IPA Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-ipa
+          path: build_output/
+
+      - name: Get Last 12h Commits
+        run: |
+          COMMITS=$(git log --since="12 hours ago" --pretty=format:"- %h %s (%an)")
+          if [ -z "$COMMITS" ]; then
+            COMMITS="No commits in the last 12 hours"
+          fi
+
+          echo "COMMITS<<EOF" >> $GITHUB_ENV
+          echo "$COMMITS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Write Release Notes
+        run: |
+          cat <<EOF > release_notes.txt
+          Nightly Build (Flutter iOS Native)
+          
+          Commits:
+          ${COMMITS}
+          EOF
+
+      - name: Update Nightly Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view nightly >/dev/null 2>&1 || \
+          gh release create nightly \
+            --title "Nightly Release" \
+            --notes "Initial Nightly Build" \
+            --prerelease
+      
+          gh release edit nightly \
+            --title "Nightly Release" \
+            --notes-file release_notes.txt \
+            --prerelease      
+          
+          for asset in $(gh release view nightly --json assets -q '.assets[].name'); do
+            echo "Deleting old asset: $asset"
+            gh release delete-asset nightly "$asset" -y || true
           done
 
-      - name: Fallback Check (For any other single nested folder)
-        run: |
-          # บล็อกสำรอง: หากชื่อโฟลเดอร์ย่อยไม่ตรงกับชื่อ zip แต่แตกมาแล้วดันมีแค่โฟลเดอร์เปล่าๆ ตัวเดียวหุ้มอยู่
-          TARGET_DIR=$(ls -d */ 2>/dev/null | grep -v -E '^(.git|.github)/$' | head -n 1)
-          NON_GIT_ITEMS=$(ls -1d */ * 2>/dev/null | grep -v -E '^(.git|.github)' | wc -l)
-          
-          if [ ! -z "$TARGET_DIR" ] && [ "$NON_GIT_ITEMS" -eq 1 ]; then
-             echo "Fallback: ตรวจพบโฟลเดอร์หุ้มชั้นนอกสุดชื่ออื่น: $TARGET_DIR -> กำลังเคลียร์ไฟล์ย่อยออกมา"
-             mv "$TARGET_DIR"* ./ 2>/dev/null || true
-             mv "$TARGET_DIR".* ./ 2>/dev/null || true
-             rm -rf "$TARGET_DIR"
-          fi
-
-      - name: Commit and Push Changes back to Repo
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add .
-          if ! git diff-index --quiet HEAD; then
-            git commit -m "Unpack and force flatten nested zip folder contents to root"
-            git push
-          else
-            echo "ไม่มีการเปลี่ยนแปลงโครงสร้างไฟล์เพิ่มเติม"
-          fi
+          gh release upload nightly build_output/*.ipa --clobber
