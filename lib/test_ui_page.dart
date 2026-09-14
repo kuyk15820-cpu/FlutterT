@@ -3,13 +3,13 @@ import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cherry_toast/cherry_toast.dart';
-import 'package:delightful_toast/delightful_toast.dart';
+import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:glassmorphism/glassmorphism.dart';
+import 'package0:glassmorphism/glassmorphism.dart';
 import 'package:lottie/lottie.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -24,7 +24,7 @@ class _TestUiPageState extends State<TestUiPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Dark Slate Theme
+      backgroundColor: const Color(0xFF0F172A),
       appBar: AppBar(
         title: const Text('UI Components Test'),
         backgroundColor: Colors.black45,
@@ -35,7 +35,6 @@ class _TestUiPageState extends State<TestUiPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Glassmorphism + FontAwesome + AutoSizeText + Flutter Animate
             const _SectionTitle(title: '1. Glassmorphism & Animations'),
             GlassmorphicContainer(
               width: double.infinity,
@@ -67,7 +66,9 @@ class _TestUiPageState extends State<TestUiPage> {
                     FontAwesomeIcons.rocket,
                     color: Colors.cyanAccent,
                     size: 32,
-                  ).animate().scale(duration: 600.ms).repeat(reverse: true),
+                  )
+                      .animate(onPlay: (controller) => controller.repeat(reverse: true))
+                      .scale(duration: 600.ms),
                   const SizedBox(width: 16),
                   const AutoSizeText(
                     'Glass Effect Loaded!',
@@ -83,7 +84,6 @@ class _TestUiPageState extends State<TestUiPage> {
             ),
             const SizedBox(height: 20),
 
-            // 2. Animated Text Kit
             const _SectionTitle(title: '2. Animated Text Kit'),
             SizedBox(
               height: 40,
@@ -105,7 +105,6 @@ class _TestUiPageState extends State<TestUiPage> {
             ),
             const SizedBox(height: 20),
 
-            // 3. Shimmer Loader
             const _SectionTitle(title: '3. Shimmer Loading'),
             Shimmer.fromColors(
               baseColor: Colors.grey[800]!,
@@ -121,7 +120,6 @@ class _TestUiPageState extends State<TestUiPage> {
             ),
             const SizedBox(height: 20),
 
-            // 4. Flutter SpinKit
             const _SectionTitle(title: '4. SpinKit Loaders'),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -133,7 +131,6 @@ class _TestUiPageState extends State<TestUiPage> {
             ),
             const SizedBox(height: 20),
 
-            // 5. Flutter Slidable
             const _SectionTitle(title: '5. Slidable Item'),
             Slidable(
               key: const ValueKey(0),
@@ -167,7 +164,6 @@ class _TestUiPageState extends State<TestUiPage> {
             ),
             const SizedBox(height: 20),
 
-            // 6. Dialogs & Toasts Triggers
             const _SectionTitle(title: '6. Dialogs & Toasts'),
             Wrap(
               spacing: 10,
@@ -201,7 +197,7 @@ class _TestUiPageState extends State<TestUiPage> {
                   icon: const Icon(Icons.notifications),
                   label: const Text('Delightful Toast'),
                   onPressed: () {
-                    DelightfulToastUtils.showNotification(
+                    DelightToastUtils.showNotification(
                       context: context,
                       builder: (context) => const ToastCard(
                         leading: Icon(Icons.flutter_dash, size: 28),
@@ -217,7 +213,6 @@ class _TestUiPageState extends State<TestUiPage> {
             ),
             const SizedBox(height: 20),
 
-            // 7. Lottie Animation
             const _SectionTitle(title: '7. Lottie Animation'),
             Center(
               child: Lottie.network(
