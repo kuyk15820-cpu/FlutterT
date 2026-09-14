@@ -3,8 +3,8 @@ import 'package:animated_text_kit/animated_text_kit.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:cherry_toast/cherry_toast.dart';
+import 'package:delightful_toast/delight_toast.dart';
 import 'package:delightful_toast/toast/components/toast_card.dart';
-import 'package:delightful_toast/toast/utils/utils.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -197,8 +197,7 @@ class _TestUiPageState extends State<TestUiPage> {
                   icon: const Icon(Icons.notifications),
                   label: const Text('Delightful Toast'),
                   onPressed: () {
-                    DelightToastUtils.showNotification(
-                      context: context,
+                    DelightToast(
                       builder: (context) => const ToastCard(
                         leading: Icon(Icons.flutter_dash, size: 28),
                         title: Text(
@@ -206,7 +205,7 @@ class _TestUiPageState extends State<TestUiPage> {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
-                    );
+                    ).show(context);
                   },
                 ),
               ],
