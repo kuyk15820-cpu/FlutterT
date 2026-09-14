@@ -197,7 +197,7 @@ class _TestUiPageState extends State<TestUiPage> {
                   icon: const Icon(Icons.notifications),
                   label: const Text('Delightful Toast'),
                   onPressed: () {
-                    DelightToast(
+                    DelightToastBar(
                       builder: (context) => const ToastCard(
                         leading: Icon(Icons.flutter_dash, size: 28),
                         title: Text(
