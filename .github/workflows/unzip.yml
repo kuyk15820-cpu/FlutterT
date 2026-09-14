@@ -55,7 +55,13 @@ jobs:
       - name: Install Flutter Dependencies
         run: flutter pub get
 
-      # 🟢 เพิ่ม Step นี้เพื่อแสดง Log เปรียบเทียบเวอร์ชัน Package ปัจจุบัน vs ล่าสุด
+      # 🟢 เพิ่ม Step นี้เพื่อสร้าง GeneratedPluginRegistrant.m และ Link CocoaPods ให้ครบถ้วน
+      - name: Prepare iOS Native Configs
+        run: |
+          flutter build ios --config-only
+          cd ios && pod install
+
+      # แสดง Log เปรียบเทียบเวอร์ชัน Package ปัจจุบัน vs ล่าสุด
       - name: Check Dependencies Outdated
         run: flutter pub outdated
 
