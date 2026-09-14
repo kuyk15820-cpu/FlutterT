@@ -1,9 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-# 0. บิลด์ Dart/Flutter code สำหรับ iOS แบบไม่ต้องเซ็นสัญญา (Unsigned)
-echo "Running Flutter Build..."
-flutter build ios --release --no-codesign
+# 0. สั่ง Flutter เตรียม Engine/Assets โดยไม่ต้องผ่าน Code Signing Validation
+echo "Running Flutter Build Pre-configuration..."
+flutter build ios --release --config-only
 
 # ย้ายเข้าโฟลเดอร์ ios (หากรันสคริปต์จาก Root ของโปรเจกต์ Flutter)
 if [ -d "ios" ]; then
@@ -30,7 +30,6 @@ else
   exit 1
 fi
 
-# 🟢 เปลี่ยนชื่อตามโครงสร้างมาตรฐานของ Flutter
 PROJECT_NAME="Runner"
 SCHEME_NAME="Runner"
 
@@ -79,5 +78,5 @@ fi
 
 echo
 echo "Build Successful!"
-echo "IPA created at: build/$PROJECT_NAME.ipa"
+echo "IPA created at: ios/build/$PROJECT_NAME.ipa"
 exit 0
