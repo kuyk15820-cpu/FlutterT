@@ -55,14 +55,12 @@ jobs:
       - name: Install Flutter Dependencies
         run: flutter pub get
 
-      # 🟢 ปรับแก้จุดนี้: ตรวจสอบ/สร้าง Podfile และรัน pod install สำหรับ iOS
+      # 🟢 ปรับแก้จุดนี้: เตรียม iOS Engine/Pods และสั่ง pod install ซิงค์ Podfile.lock ให้ตรงกัน
       - name: Prepare iOS Native Configs
         run: |
+          flutter precache --ios
           cd ios
-          if [ ! -f "Podfile" ]; then
-            pod init
-          fi
-          pod install || true
+          pod install --repo-update
           cd ..
 
       # แสดง Log เปรียบเทียบเวอร์ชัน Package ปัจจุบัน vs ล่าสุด
