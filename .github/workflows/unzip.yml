@@ -57,11 +57,11 @@ jobs:
           rm -f pubspec.lock
           flutter pub get
 
-      # ให้ Flutter Build แบบ --no-codesign เพื่อสร้าง Podfile, Pods และ Native Configs
+      # 🟢 เปลี่ยนใช้ --simulator เพื่อสร้าง Podfile, Pods และ Native Configs โดยไม่ติดบล็อก Development Team
       - name: Prepare iOS Native Configs
-        run: flutter build ios --no-codesign
+        run: flutter build ios --simulator
 
-      # 🟢 แสดง Log รายชื่อ Package ทั้งหมด (รวมตัวที่เป็นเวอร์ชันล่าสุดแล้ว)
+      # แสดง Log รายชื่อ Package ทั้งหมด
       - name: Check Dependencies Outdated
         run: flutter pub outdated --show-all
 
@@ -114,7 +114,7 @@ jobs:
           chmod +x build_ipa.sh
           ./build_ipa.sh
 
-      # 5. ย้ายไฟล์ Runner.ipa หรือ .ipa ออกมาไว้ที่ Root build/ เพื่อดึง Artifact
+      # 5. ย้ายไฟล์ .ipa ออกมาไว้ที่ Root build_output/ เพื่อดึง Artifact
       - name: Prepare Artifact Directory
         run: |
           mkdir -p build_output
