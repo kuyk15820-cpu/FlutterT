@@ -1,7 +1,24 @@
+name: bitrisesample
+description: "A new Flutter project for iOS"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+# 🟢 แก้ไขตรงจุดนี้ครับ (ระบุเวอร์ชัน SDK ให้ถูกต้อง)
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
 dependencies:
   flutter:
     sdk: flutter
-
   cupertino_icons: ^1.0.8
   http: ^1.2.0
   font_awesome_flutter: ^10.7.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
