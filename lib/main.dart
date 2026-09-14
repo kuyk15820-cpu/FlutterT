@@ -183,7 +183,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         return SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
           child: Column(
-            crossAxisAlignment: CrossAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'Overview',
@@ -255,7 +255,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         border: Border.all(color: Colors.white.withOpacity(0.03)),
       ),
       child: Column(
-        crossAxisAlignment: CrossAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
