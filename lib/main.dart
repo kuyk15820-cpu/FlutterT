@@ -62,7 +62,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             Icon(FontAwesomeIcons.shieldHalved, color: Color(0xFF6366F1), size: 18),
             SizedBox(width: 8),
             Text(
-              'API Panel',
+              'FX-Adm',
               style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ],
