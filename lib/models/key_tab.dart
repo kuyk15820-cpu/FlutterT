@@ -33,11 +33,12 @@ class _KeyTabState extends State<KeyTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF13111C),
-      body: CustomScrollView(
-        slivers: [
-          // Header & Tab Selection
-          SliverToBoxAdapter(
-            child: Padding(
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header & Tab Selection
+            Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,65 +68,62 @@ class _KeyTabState extends State<KeyTab> {
                 ],
               ),
             ),
-          ),
 
-          // Key List View
-          FutureBuilder<List<KeyItem>>(
-            future: _keysFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const SliverFillRemaining(
-                  child: Center(child: CupertinoActivityIndicator(radius: 14)),
-                );
-              } else if (snapshot.hasError) {
-                return SliverFillRemaining(
-                  child: Center(
-                    child: Text(
-                      'Error: ${snapshot.error}',
-                      style: const TextStyle(color: CupertinoColors.systemRed),
-                    ),
-                  ),
-                );
-              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const SliverFillRemaining(
-                  child: Center(
-                    child: Text(
-                      'No keys found in this category.',
-                      style: TextStyle(color: Color(0xFF64748B)),
-                    ),
-                  ),
-                );
-              }
+            // Key List View
+            Expanded(
+              child: FutureBuilder<List<KeyItem>>(
+                future: _keysFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CupertinoActivityIndicator(radius: 14),
+                    );
+                  } else if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          'Error: ${snapshot.error}',
+                          style: const TextStyle(color: CupertinoColors.systemRed),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    );
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No keys found in this category.',
+                        style: TextStyle(color: Color(0xFF64748B)),
+                      ),
+                    );
+                  }
 
-              final filteredKeys = snapshot.data!.where((item) {
-                final query = _searchQuery.toLowerCase();
-                return item.tokenCode.toLowerCase().contains(query) ||
-                    item.projectName.toLowerCase().contains(query);
-              }).toList();
+                  final filteredKeys = snapshot.data!.where((item) {
+                    final query = _searchQuery.toLowerCase();
+                    return item.tokenCode.toLowerCase().contains(query) ||
+                        item.projectName.toLowerCase().contains(query);
+                  }).toList();
 
-              if (filteredKeys.isEmpty) {
-                return const SliverFillRemaining(
-                  child: Center(
-                    child: Text(
-                      'No matching key found.',
-                      style: TextStyle(color: Color(0xFF64748B)),
-                    ),
-                  ),
-                );
-              }
+                  if (filteredKeys.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No matching key found.',
+                        style: TextStyle(color: Color(0xFF64748B)),
+                      ),
+                    );
+                  }
 
-              return SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 10, 20, 110),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => _buildKeyCard(filteredKeys[index]),
-                    childCount: filteredKeys.length,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 110),
+                    itemCount: filteredKeys.length,
+                    itemBuilder: (context, index) =>
+                        _buildKeyCard(filteredKeys[index]),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
