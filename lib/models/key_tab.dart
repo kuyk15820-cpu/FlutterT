@@ -229,7 +229,7 @@ class _KeyTabState extends State<KeyTab> {
             ),
             const SizedBox(width: 8),
             IconButton(
-              icon: const Icon(FontAwesomeIcons.copy, size: 14, color: Color(0xFF3B82F6)),
+              icon: const FaIcon(FontAwesomeIcons.copy, size: 14, color: Color(0xFF3B82F6)),
               onPressed: () {
                 Clipboard.setData(ClipboardData(text: item.tokenCode));
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -337,7 +337,7 @@ class _KeyTabState extends State<KeyTab> {
     );
   }
 
-  Widget _buildActionButton(String label, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildActionButton(String label, FaIconData icon, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
@@ -351,7 +351,7 @@ class _KeyTabState extends State<KeyTab> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 10, color: color),
+            FaIcon(icon, size: 10, color: color),
             const SizedBox(width: 6),
             Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
           ],
