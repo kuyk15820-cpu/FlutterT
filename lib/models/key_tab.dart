@@ -1,8 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../models/key_model.dart';
+import '../models/model.dart';
 import '../services/api_service.dart';
 
 class KeyTab extends StatefulWidget {
@@ -19,6 +18,10 @@ class _KeyTabState extends State<KeyTab> {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
 
+  // Multi-Selection State (Bulk Actions)
+  bool _isMultiSelectMode = false;
+  final Set<int> _selectedIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -27,7 +30,20 @@ class _KeyTabState extends State<KeyTab> {
 
   void _refreshData() {
     setState(() {
+      _selectedIds.clear();
+      _isMultiSelectMode = false;
       _keysFuture = ApiService.fetchKeys(_selectedTab);
+    });
+  }
+
+  void _toggleSelection(int id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+        if (_selectedIds.isEmpty) _isMultiSelectMode = false;
+      } else {
+        _selectedIds.add(id);
+      }
     });
   }
 
@@ -40,6 +56,7 @@ class _KeyTabState extends State<KeyTab> {
           children: [
             _buildTopAppBar(),
             if (_isSearching) _buildSearchBarWidget(),
+            if (_isMultiSelectMode) _buildBulkActionBar(),
             Expanded(
               child: FutureBuilder<List<KeyItem>>(
                 future: _keysFuture,
@@ -87,8 +104,10 @@ class _KeyTabState extends State<KeyTab> {
                   return ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                     itemCount: filteredKeys.length,
-                    itemBuilder: (context, index) =>
-                        _buildKeyCard(filteredKeys[index]),
+                    itemBuilder: (context, index) {
+                      final item = filteredKeys[index];
+                      return _buildKeyCard(item);
+                    },
                   );
                 },
               ),
@@ -100,7 +119,7 @@ class _KeyTabState extends State<KeyTab> {
   }
 
   // ------------------------------------------------------------------
-  // APP BAR & HEADER
+  // APP BAR & HEADER & BULK ACTION BAR
   // ------------------------------------------------------------------
 
   Widget _buildTopAppBar() {
@@ -109,9 +128,11 @@ class _KeyTabState extends State<KeyTab> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'Keys',
-            style: TextStyle(
+          Text(
+            _isMultiSelectMode
+                ? 'Selected (${_selectedIds.length})'
+                : 'Keys',
+            style: const TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -119,76 +140,78 @@ class _KeyTabState extends State<KeyTab> {
           ),
           Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.add, color: Colors.white, size: 24),
-                onPressed: _showCreateKeyDialog,
-                tooltip: 'Create Key',
-              ),
-              IconButton(
-                icon: Icon(
-                  _isSearching ? Icons.close : Icons.search,
-                  color: Colors.white,
-                  size: 22,
+              if (!_isMultiSelectMode) ...[
+                IconButton(
+                  icon: const Icon(Icons.add, color: Colors.white, size: 24),
+                  onPressed: _showCreateKeyDialog,
+                  tooltip: 'Create Key',
                 ),
-                onPressed: () {
-                  setState(() {
-                    _isSearching = !_isSearching;
-                    if (!_isSearching) {
-                      _searchQuery = '';
-                      _searchController.clear();
-                    }
-                  });
-                },
-                tooltip: 'Search',
-              ),
-              PopupMenuButton<String>(
-                icon: const Icon(
-                  Icons.tune,
-                  color: Colors.white,
-                  size: 22,
+                IconButton(
+                  icon: Icon(
+                    _isSearching ? Icons.close : Icons.search,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _isSearching = !_isSearching;
+                      if (!_isSearching) {
+                        _searchQuery = '';
+                        _searchController.clear();
+                      }
+                    });
+                  },
+                  tooltip: 'Search',
                 ),
-                color: const Color(0xFF232330),
-                onSelected: (tab) {
-                  setState(() => _selectedTab = tab);
-                  _refreshData();
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'active',
-                    child: Text(
-                      '🟢 Active Keys',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                PopupMenuButton<String>(
+                  icon: const Icon(
+                    Icons.tune,
+                    color: Colors.white,
+                    size: 22,
                   ),
-                  const PopupMenuItem(
-                    value: 'banned',
-                    child: Text(
-                      '🚫 Banned Keys',
-                      style: TextStyle(color: Colors.white),
+                  color: const Color(0xFF232330),
+                  onSelected: (tab) {
+                    setState(() => _selectedTab = tab);
+                    _refreshData();
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'active',
+                      child: Text('🟢 Active Keys', style: TextStyle(color: Colors.white)),
                     ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'expired',
-                    child: Text(
-                      '🟡 Expired Keys',
-                      style: TextStyle(color: Colors.white),
+                    const PopupMenuItem(
+                      value: 'banned',
+                      child: Text('🚫 Banned Keys', style: TextStyle(color: Colors.white)),
                     ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'deleted',
-                    child: Text(
-                      '🔴 Deleted Keys',
-                      style: TextStyle(color: Colors.white),
+                    const PopupMenuItem(
+                      value: 'expired',
+                      child: Text('🟡 Expired Keys', style: TextStyle(color: Colors.white)),
                     ),
-                  ),
-                ],
-              ),
+                    const PopupMenuItem(
+                      value: 'deleted',
+                      child: Text('🔴 Deleted History', style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+                IconButton(
+                  icon: const Icon(Icons.cleaning_services_outlined, color: Color(0xFFEF4444), size: 20),
+                  onPressed: _showClearAllConfirmDialog,
+                  tooltip: 'Clear All in Current Tab',
+                ),
+              ],
+              if (_isMultiSelectMode)
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 24),
+                  onPressed: () {
+                    setState(() {
+                      _isMultiSelectMode = false;
+                      _selectedIds.clear();
+                    });
+                  },
+                  tooltip: 'Cancel Selection',
+                ),
               IconButton(
-                icon: const Icon(
-                  Icons.refresh,
-                  color: Color(0xFF94A3B8),
-                  size: 22,
-                ),
+                icon: const Icon(Icons.refresh, color: Color(0xFF94A3B8), size: 22),
                 onPressed: _refreshData,
                 tooltip: 'Refresh',
               ),
@@ -223,13 +246,58 @@ class _KeyTabState extends State<KeyTab> {
     );
   }
 
+  Widget _buildBulkActionBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF232330),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.5)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          if (_selectedTab != 'deleted') ...[
+            _buildBulkActionButton('Ban', Icons.lock, Colors.orange, () => _executeBulkAction('ban_selected')),
+            _buildBulkActionButton('Unban', Icons.lock_open, Colors.green, () => _executeBulkAction('unban_selected')),
+            _buildBulkActionButton('Reset Device', Icons.rotate_left, Colors.blue, () => _executeBulkAction('reset_selected_devices')),
+            _buildBulkActionButton('Delete', Icons.delete, Colors.red, () => _executeBulkAction('delete_selected')),
+          ] else ...[
+            _buildBulkActionButton('Purge Permanently', Icons.delete_forever, Colors.red, () => _executeBulkAction('purge_selected_history')),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBulkActionButton(String label, IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(height: 2),
+            Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ------------------------------------------------------------------
   // KEY CARD ITEM
   // ------------------------------------------------------------------
 
   Widget _buildKeyCard(KeyItem item) {
+    final bool isSelected = _selectedIds.contains(item.id);
+
     String statusText = 'PENDING';
-    Color badgeColor = const Color(0xFF3B82F6); // Blue
+    Color badgeColor = const Color(0xFF3B82F6);
 
     if (item.isBanned) {
       statusText = 'BANNED';
@@ -240,93 +308,106 @@ class _KeyTabState extends State<KeyTab> {
     } else if (item.usedDevices > 0) {
       statusText = 'ACTIVE';
       badgeColor = const Color(0xFF22C55E);
+    } else if (_selectedTab == 'deleted') {
+      statusText = 'DELETED';
+      badgeColor = const Color(0xFF64748B);
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF232330),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onLongPress: () {
+        setState(() {
+          _isMultiSelectMode = true;
+          _toggleSelection(item.id);
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF312E81) : const Color(0xFF232330),
+          borderRadius: BorderRadius.circular(16),
+          border: isSelected ? Border.all(color: const Color(0xFF6366F1), width: 1.5) : null,
+        ),
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            leading: _isMultiSelectMode
+                ? Checkbox(
+                    value: isSelected,
+                    activeColor: const Color(0xFF6366F1),
+                    onChanged: (_) => _toggleSelection(item.id),
+                  )
+                : null,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.tokenCode,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          fontFamily: 'monospace',
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: badgeColor.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        statusText,
+                        style: TextStyle(
+                          color: badgeColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.access_time, color: Color(0xFF94A3B8), size: 13),
+                    const SizedBox(width: 4),
+                    Text(
+                      item.type == 'lifetime'
+                          ? '∞ Lifetime'
+                          : '${item.duration > 0 ? (item.duration / 24).toStringAsFixed(0) : 0} day',
+                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                    ),
+                  ],
+                ),
+              ],
+            ),
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      item.tokenCode,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        fontFamily: 'monospace',
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: badgeColor.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      statusText,
-                      style: TextStyle(
-                        color: badgeColor,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.access_time,
-                    color: Color(0xFF94A3B8),
-                    size: 13,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    item.type == 'lifetime'
-                        ? '∞ Lifetime'
-                        : '${item.duration > 0 ? (item.duration / 24).toStringAsFixed(0) : 0} day',
-                    style: const TextStyle(
-                      color: Color(0xFF94A3B8),
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
+              const SizedBox(height: 8),
+              _buildDetailRow('Package', item.projectName.isNotEmpty ? item.projectName : 'N/A'),
+              if (_selectedTab != 'deleted') ...[
+                _buildDetailRow('Activated', item.usedDevices > 0 ? 'Yes' : 'No'),
+                _buildDetailRow('Device Limit', '${item.usedDevices}/${item.maxDevices}'),
+                _buildDetailRow('Expiry Date', item.expireDate ?? 'Not Activated'),
+                if (item.isBanned) ...[
+                  _buildDetailRow('Ban Expire', item.banExpire ?? 'Permanent'),
+                  _buildDetailRow('Ban Reason', item.banReason ?? 'None'),
+                ]
+              ] else ...[
+                _buildDetailRow('Delete Reason', item.reason ?? 'User Deleted'),
+                _buildDetailRow('Deleted At', item.deletedAt ?? 'N/A'),
+              ],
+              const SizedBox(height: 16),
+              _buildCardActionButtons(item),
             ],
           ),
-          children: [
-            const SizedBox(height: 8),
-            _buildDetailRow('Package', item.projectName),
-            _buildDetailRow('Activated', item.usedDevices > 0 ? 'Yes' : 'No'),
-            _buildDetailRow(
-              'Reset Count',
-              '${item.usedDevices}/${item.maxDevices}',
-            ),
-            _buildDetailRow('Expiry', item.expireDate ?? 'Not Activated'),
-            if (item.isBanned)
-              _buildDetailRow('Ban Reason', item.banReason ?? 'None'),
-            const SizedBox(height: 16),
-            _buildCardActionButtons(item),
-          ],
         ),
       ),
     );
@@ -338,16 +419,13 @@ class _KeyTabState extends State<KeyTab> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
+          Text(label, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -356,6 +434,26 @@ class _KeyTabState extends State<KeyTab> {
   }
 
   Widget _buildCardActionButtons(KeyItem item) {
+    if (_selectedTab == 'deleted') {
+      return Row(
+        children: [
+          Expanded(
+            child: _buildSmallButton(
+              label: 'Copy Key',
+              icon: Icons.copy,
+              color: const Color(0xFF3B82F6),
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: item.tokenCode));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Copied Key to Clipboard')),
+                );
+              },
+            ),
+          ),
+        ],
+      );
+    }
+
     return Row(
       children: [
         Expanded(
@@ -371,17 +469,17 @@ class _KeyTabState extends State<KeyTab> {
             },
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         if (item.type != 'lifetime' && !item.isBanned) ...[
           Expanded(
             child: _buildSmallButton(
-              label: 'Edit',
+              label: 'Renew',
               icon: Icons.edit,
               color: const Color(0xFF6366F1),
               onTap: () => _showRenewDialog(item),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
         ],
         Expanded(
           child: _buildSmallButton(
@@ -394,12 +492,12 @@ class _KeyTabState extends State<KeyTab> {
             },
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Expanded(
           child: _buildSmallButton(
             label: item.isBanned ? 'Unlock' : 'Lock',
             icon: item.isBanned ? Icons.lock_open : Icons.lock,
-            color: const Color(0xFFEF4444),
+            color: item.isBanned ? const Color(0xFF22C55E) : const Color(0xFFEAB308),
             onTap: () async {
               if (item.isBanned) {
                 await ApiService.unbanKey(item.id);
@@ -407,6 +505,18 @@ class _KeyTabState extends State<KeyTab> {
               } else {
                 _showBanDialog(item);
               }
+            },
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: _buildSmallButton(
+            label: 'Delete',
+            icon: Icons.delete_outline,
+            color: const Color(0xFFEF4444),
+            onTap: () async {
+              await ApiService.deleteKey(item.id);
+              _refreshData();
             },
           ),
         ),
@@ -434,12 +544,11 @@ class _KeyTabState extends State<KeyTab> {
           children: [
             Icon(icon, size: 12, color: color),
             const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -449,11 +558,81 @@ class _KeyTabState extends State<KeyTab> {
   }
 
   // ------------------------------------------------------------------
+  // BULK ACTIONS & CLEAR ALL EXECUTION
+  // ------------------------------------------------------------------
+
+  Future<void> _executeBulkAction(String action) async {
+    if (_selectedIds.isEmpty) return;
+    try {
+      await ApiService.bulkKeyAction(
+        bulkAction: action,
+        ids: _selectedIds.toList(),
+      );
+      _refreshData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
+  void _showClearAllConfirmDialog() {
+    String targetTabAction = '';
+    String title = '';
+
+    if (_selectedTab == 'active') {
+      targetTabAction = 'clear_active_keys';
+      title = 'Clear All Active Keys';
+    } else if (_selectedTab == 'banned') {
+      targetTabAction = 'clear_banned_keys';
+      title = 'Clear All Banned Keys';
+    } else if (_selectedTab == 'expired') {
+      targetTabAction = 'clear_expired_keys';
+      title = 'Clear All Expired Keys';
+    } else if (_selectedTab == 'deleted') {
+      targetTabAction = 'clear_deleted_history';
+      title = 'Purge Deleted Keys History';
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF232330),
+        title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16)),
+        content: Text(
+          'Are you sure you want to clear all items in current section ($_selectedTab)? This action cannot be undone.',
+          style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+            onPressed: () async {
+              Navigator.pop(context);
+              await ApiService.clearAllKeys(targetTabAction);
+              _refreshData();
+            },
+            child: const Text('Confirm Clear All'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------------
   // DIALOGS (CREATE, BAN, RENEW)
   // ------------------------------------------------------------------
 
-  void _showCreateKeyDialog() {
-    int selectedProject = 1;
+  void _showCreateKeyDialog() async {
+    List<PackageItem> packages = [];
+    try {
+      packages = await ApiService.fetchPackages('active');
+    } catch (_) {}
+
+    int? selectedProject = packages.isNotEmpty ? packages.first.id : null;
     String keyType = 'dynamic';
     String prefixType = 'package';
     final customPrefixController = TextEditingController();
@@ -461,19 +640,36 @@ class _KeyTabState extends State<KeyTab> {
     String durationUnit = 'day';
     int maxDevices = 1;
 
+    if (!mounted) return;
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF232330),
-          title: const Text(
-            'Create New Key',
-            style: TextStyle(color: Colors.white, fontSize: 18),
-          ),
+          title: const Text('Create New Key', style: TextStyle(color: Colors.white, fontSize: 18)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (packages.isNotEmpty)
+                  DropdownButtonFormField<int>(
+                    value: selectedProject,
+                    dropdownColor: const Color(0xFF232330),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Select Package',
+                      labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                    ),
+                    items: packages.map((pkg) {
+                      return DropdownMenuItem<int>(
+                        value: pkg.id,
+                        child: Text(pkg.name),
+                      );
+                    }).toList(),
+                    onChanged: (val) => setDialogState(() => selectedProject = val),
+                  ),
+                const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
                   value: keyType,
                   dropdownColor: const Color(0xFF232330),
@@ -483,18 +679,9 @@ class _KeyTabState extends State<KeyTab> {
                     labelStyle: TextStyle(color: Color(0xFF94A3B8)),
                   ),
                   items: const [
-                    DropdownMenuItem(
-                      value: 'dynamic',
-                      child: Text('Dynamic Key'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'static',
-                      child: Text('Static Key'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'lifetime',
-                      child: Text('Lifetime Key'),
-                    ),
+                    DropdownMenuItem(value: 'dynamic', child: Text('Dynamic Key')),
+                    DropdownMenuItem(value: 'static', child: Text('Static Key')),
+                    DropdownMenuItem(value: 'lifetime', child: Text('Lifetime Key')),
                   ],
                   onChanged: (val) => setDialogState(() => keyType = val!),
                 ),
@@ -508,14 +695,8 @@ class _KeyTabState extends State<KeyTab> {
                     labelStyle: TextStyle(color: Color(0xFF94A3B8)),
                   ),
                   items: const [
-                    DropdownMenuItem(
-                      value: 'package',
-                      child: Text('From Package Name'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'custom',
-                      child: Text('Custom Prefix'),
-                    ),
+                    DropdownMenuItem(value: 'package', child: Text('From Package Name')),
+                    DropdownMenuItem(value: 'custom', child: Text('Custom Prefix')),
                   ],
                   onChanged: (val) => setDialogState(() => prefixType = val!),
                 ),
@@ -552,55 +733,53 @@ class _KeyTabState extends State<KeyTab> {
                           dropdownColor: const Color(0xFF232330),
                           style: const TextStyle(color: Colors.white),
                           items: const [
-                            DropdownMenuItem(
-                              value: 'hour',
-                              child: Text('Hour'),
-                            ),
+                            DropdownMenuItem(value: 'hour', child: Text('Hour')),
                             DropdownMenuItem(value: 'day', child: Text('Day')),
-                            DropdownMenuItem(
-                              value: 'week',
-                              child: Text('Week'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'month',
-                              child: Text('Month'),
-                            ),
+                            DropdownMenuItem(value: 'week', child: Text('Week')),
+                            DropdownMenuItem(value: 'month', child: Text('Month')),
                           ],
-                          onChanged: (val) =>
-                              setDialogState(() => durationUnit = val!),
+                          onChanged: (val) => setDialogState(() => durationUnit = val!),
                         ),
                       ),
                     ],
                   ),
                 ],
+                const SizedBox(height: 10),
+                TextFormField(
+                  initialValue: '1',
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    labelText: 'Max Device Limit',
+                    labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                  ),
+                  onChanged: (val) => maxDevices = int.tryParse(val) ?? 1,
+                ),
               ],
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Color(0xFF64748B)),
-              ),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
-              ),
-              onPressed: () async {
-                bool success = await ApiService.createKey(
-                  projectId: selectedProject,
-                  type: keyType,
-                  maxDevices: maxDevices,
-                  prefixType: prefixType,
-                  customPrefix: customPrefixController.text,
-                  durationNum: int.tryParse(durationNumController.text) ?? 1,
-                  durationUnit: durationUnit,
-                );
-                if (context.mounted) Navigator.pop(context);
-                if (success) _refreshData();
-              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
+              onPressed: selectedProject == null
+                  ? null
+                  : () async {
+                      bool success = await ApiService.createKey(
+                        projectId: selectedProject!,
+                        type: keyType,
+                        maxDevices: maxDevices,
+                        prefixType: prefixType,
+                        customPrefix: customPrefixController.text,
+                        durationNum: int.tryParse(durationNumController.text) ?? 1,
+                        durationUnit: durationUnit,
+                      );
+                      if (context.mounted) Navigator.pop(context);
+                      if (success) _refreshData();
+                    },
               child: const Text('Create'),
             ),
           ],
@@ -611,73 +790,76 @@ class _KeyTabState extends State<KeyTab> {
 
   void _showBanDialog(KeyItem item) {
     final reasonController = TextEditingController();
+    final hoursController = TextEditingController(text: '24');
     String banType = 'permanent';
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF232330),
-        title: const Text(
-          'Lock / Ban Key',
-          style: TextStyle(color: Colors.white, fontSize: 16),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButtonFormField<String>(
-              value: banType,
-              dropdownColor: const Color(0xFF232330),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              decoration: const InputDecoration(
-                labelText: 'Ban Type',
-                labelStyle: TextStyle(color: Color(0xFF94A3B8)),
-              ),
-              items: const [
-                DropdownMenuItem(
-                  value: 'permanent',
-                  child: Text('Permanent'),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF232330),
+          title: const Text('Lock / Ban Key', style: TextStyle(color: Colors.white, fontSize: 16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: banType,
+                dropdownColor: const Color(0xFF232330),
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                decoration: const InputDecoration(
+                  labelText: 'Ban Type',
+                  labelStyle: TextStyle(color: Color(0xFF94A3B8)),
                 ),
-                DropdownMenuItem(
-                  value: 'temp',
-                  child: Text('Temporary (Hours)'),
+                items: const [
+                  DropdownMenuItem(value: 'permanent', child: Text('Permanent')),
+                  DropdownMenuItem(value: 'temp', child: Text('Temporary (Hours)')),
+                ],
+                onChanged: (val) => setDialogState(() => banType = val!),
+              ),
+              if (banType == 'temp') ...[
+                const SizedBox(height: 10),
+                TextField(
+                  controller: hoursController,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: const InputDecoration(
+                    labelText: 'Ban Hours',
+                    labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                  ),
                 ),
               ],
-              onChanged: (val) => banType = val!,
-            ),
-            TextField(
-              controller: reasonController,
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-              decoration: const InputDecoration(
-                labelText: 'Reason',
-                labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+              const SizedBox(height: 10),
+              TextField(
+                controller: reasonController,
+                style: const TextStyle(color: Colors.white, fontSize: 14),
+                decoration: const InputDecoration(
+                  labelText: 'Reason',
+                  labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+                ),
               ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
+              onPressed: () async {
+                await ApiService.banKey(
+                  keyId: item.id,
+                  banType: banType,
+                  banHours: int.tryParse(hoursController.text) ?? 24,
+                  reason: reasonController.text,
+                );
+                if (context.mounted) Navigator.pop(context);
+                _refreshData();
+              },
+              child: const Text('Confirm Ban'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Color(0xFF64748B)),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-            ),
-            onPressed: () async {
-              await ApiService.banKey(
-                keyId: item.id,
-                banType: banType,
-                reason: reasonController.text,
-              );
-              if (context.mounted) Navigator.pop(context);
-              _refreshData();
-            },
-            child: const Text('Confirm Ban'),
-          ),
-        ],
       ),
     );
   }
@@ -690,10 +872,7 @@ class _KeyTabState extends State<KeyTab> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF232330),
-        title: const Text(
-          'Edit / Renew Key',
-          style: TextStyle(color: Colors.white, fontSize: 16),
-        ),
+        title: const Text('Edit / Renew Key', style: TextStyle(color: Colors.white, fontSize: 16)),
         content: Row(
           children: [
             Expanded(
@@ -728,15 +907,10 @@ class _KeyTabState extends State<KeyTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: Color(0xFF64748B)),
-            ),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF22C55E),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
             onPressed: () async {
               await ApiService.renewKey(
                 keyId: item.id,
