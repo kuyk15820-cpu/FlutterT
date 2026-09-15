@@ -24,8 +24,7 @@ class CollapsibleTablePage extends StatefulWidget {
 }
 
 class _CollapsibleTablePageState extends State<CollapsibleTablePage> {
-  // เก็บ ID ของแถวที่กำลังเปิดอยู่
-  final Set<int> _expandedRows = {2}; // ตัวอย่าง: เปิดแถวที่ 2 ค้างไว้แบบในรูป
+  final Set<int> _expandedRows = {2};
 
   final List<KeyData> _items = [
     KeyData(id: 1, expirationDate: '30 day', status: 'Pending', keyType: 'Admin Key', key: 'baontq-6zy89tfsbdhvi01a'),
@@ -48,6 +47,12 @@ class _CollapsibleTablePageState extends State<CollapsibleTablePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: const Text('Collapsible Table'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Container(
@@ -71,9 +76,17 @@ class _CollapsibleTablePageState extends State<CollapsibleTablePage> {
                 ),
                 child: const Row(
                   children: [
-                    SizedBox(width: 40), // เผื่อพื้นที่ปุ่ม +/-
-                    Expanded(child: Text('Expiration date', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black70))),
-                    Text('Status', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black70)),
+                    SizedBox(width: 40),
+                    Expanded(
+                      child: Text(
+                        'Expiration date',
+                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54),
+                      ),
+                    ),
+                    Text(
+                      'Status',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black54),
+                    ),
                   ],
                 ),
               ),
@@ -90,14 +103,12 @@ class _CollapsibleTablePageState extends State<CollapsibleTablePage> {
 
                   return Column(
                     children: [
-                      // แถวหลัก (Main Row)
                       InkWell(
                         onTap: () => _toggleRow(item.id),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           child: Row(
                             children: [
-                              // ปุ่ม + / -
                               GestureDetector(
                                 onTap: () => _toggleRow(item.id),
                                 child: Container(
@@ -119,7 +130,6 @@ class _CollapsibleTablePageState extends State<CollapsibleTablePage> {
                               const Spacer(),
                               Text(item.expirationDate, style: const TextStyle(color: Colors.black87)),
                               const Spacer(),
-                              // Status Badge
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
@@ -128,15 +138,13 @@ class _CollapsibleTablePageState extends State<CollapsibleTablePage> {
                                 ),
                                 child: Text(
                                   item.status,
-                                  style: const TextStyle(color: const Color(0xFF854D0E), fontSize: 12, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(color: Color(0xFF854D0E), fontSize: 12, fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-
-                      // แถวย่อยที่จะโชว์เมื่อกดคลี่ (Sub Detail Row)
                       if (isExpanded)
                         Container(
                           color: const Color(0xFFF8FAFC),
