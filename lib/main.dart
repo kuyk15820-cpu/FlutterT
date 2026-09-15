@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'test_ui_page.dart';
+import 'test2.dart'; // <--- Import ไฟล์หน้าตารางของคุณ (สมมติว่าตั้งชื่อไฟล์นี้ไว้)
 
 void main() {
   runApp(const MyApp());
@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
     return const MaterialApp(
       title: 'FX-Adm Test',
       debugShowCheckedModeBanner: false,
-      home: TestUiPage(),
+      home: CollapsibleTablePage(), // <--- เปลี่ยนจาก TestUiPage() เป็น CollapsibleTablePage()
     );
   }
 }
