@@ -2,10 +2,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-import 'models/dashboard_stats.dart';
+import 'models/model.dart';
+import 'services/api_service.dart';
 import 'models/dashboard_tab.dart';
 import 'models/key_tab.dart';
-import 'services/api_service.dart';
+import 'models/package_tab.dart'; // 📌 เพิ่ม Import PackageTab
 
 void main() {
   runApp(const MyApp());
@@ -88,7 +89,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 DashboardTab(statsFuture: _statsFuture),
                 const KeyTab(),
                 const Center(child: Text('Device History', style: TextStyle(color: Colors.white))),
-                const Center(child: Text('Package Settings', style: TextStyle(color: Colors.white))),
+                const PackageTab(), // 📌 เปลี่ยนจาก Placeholder เป็น PackageTab จริง
               ],
             ),
           ),
