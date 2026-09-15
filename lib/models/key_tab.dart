@@ -338,27 +338,27 @@ class _KeyTabState extends State<KeyTab> {
   }
 
   Widget _buildActionButton(String label, IconData icon, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FaIcon(icon, size: 10, color: color), // 📌 ใช้งาน FaIcon ร่วมกับ IconData จาก FontAwesomeIcons
-            const SizedBox(width: 6),
-            Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
-          ],
-        ),
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(8),
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
-    );
-  }
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color), // เปลี่ยนจาก FaIcon เป็น Icon
+          const SizedBox(width: 6),
+          Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    ),
+  );
+}
 
   // ------------------------------------------------------------------
   // DIALOGS
