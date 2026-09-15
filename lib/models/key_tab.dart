@@ -351,7 +351,7 @@ class _KeyTabState extends State<KeyTab> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            FaIcon(icon, size: 10, color: color),
+            FaIcon(icon, size: 10, color: color), // 📌 ใช้งาน FaIcon ร่วมกับ IconData จาก FontAwesomeIcons
             const SizedBox(width: 6),
             Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
           ],
