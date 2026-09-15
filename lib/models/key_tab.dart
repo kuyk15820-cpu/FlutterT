@@ -15,7 +15,7 @@ class _KeyTabState extends State<KeyTab> {
   String _selectedTab = 'active'; // 'active', 'banned', 'expired', 'deleted'
   late Future<List<KeyItem>> _keysFuture;
   String _searchQuery = '';
-  final Set<String> _expandedRows = {}; // เก็บ ID ของแถวที่คลี่ออก
+  final Set<String> _expandedRows = {}; // เก็บ ID (String) ของแถวที่คลี่ออก
 
   @override
   void initState() {
@@ -165,13 +165,14 @@ class _KeyTabState extends State<KeyTab> {
                           separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFF272535)),
                           itemBuilder: (context, index) {
                             final item = filteredKeys[index];
-                            final isExpanded = _expandedRows.contains(item.id);
+                            final itemIdString = item.id.toString();
+                            final isExpanded = _expandedRows.contains(itemIdString);
 
                             return Column(
                               children: [
                                 // Main Row
                                 InkWell(
-                                  onTap: () => _toggleRow(item.id),
+                                  onTap: () => _toggleRow(itemIdString),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                                     child: Row(
