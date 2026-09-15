@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import 'models/dashboard_stats.dart';
 import 'models/dashboard_tab.dart';
+import 'models/key_tab.dart'; // 📌 เพิ่ม Import KeyTab ที่นี่
 import 'services/api_service.dart';
 
 void main() {
@@ -89,7 +90,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               index: _selectedIndex,
               children: [
                 DashboardTab(statsFuture: _statsFuture),
-                const Center(child: Text('Key Management', style: TextStyle(color: Colors.white))),
+                const KeyTab(), // 🟢 เรียกใช้งานหน้า KeyTab ตรงนี้
                 const Center(child: Text('Device History', style: TextStyle(color: Colors.white))),
                 const Center(child: Text('Package Settings', style: TextStyle(color: Colors.white))),
               ],
