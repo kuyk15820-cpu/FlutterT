@@ -4,7 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import 'models/dashboard_stats.dart';
 import 'models/dashboard_tab.dart';
-import 'models/key_tab.dart'; // 📌 เพิ่ม Import KeyTab ที่นี่
+import 'models/key_tab.dart';
 import 'services/api_service.dart';
 
 void main() {
@@ -16,22 +16,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const CupertinoApp(
+    return MaterialApp(
       title: 'FX-Adm',
       debugShowCheckedModeBanner: false,
-      theme: CupertinoThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: Color(0xFF14131D),
-        primaryColor: Color(0xFF6366F1),
-        barBackgroundColor: Color(0xFF1F1D2B),
-        textTheme: CupertinoTextThemeData(
-          textStyle: TextStyle(
-            fontFamily: '.SF Pro Text',
-            color: Colors.white,
-          ),
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF14131D),
+        primaryColor: const Color(0xFF6366F1),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFF6366F1),
+          surface: Color(0xFF1F1D2B),
         ),
       ),
-      home: MainNavigationScreen(),
+      home: const MainNavigationScreen(),
     );
   }
 }
@@ -90,7 +86,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               index: _selectedIndex,
               children: [
                 DashboardTab(statsFuture: _statsFuture),
-                const KeyTab(), // 🟢 เรียกใช้งานหน้า KeyTab ตรงนี้
+                const KeyTab(),
                 const Center(child: Text('Device History', style: TextStyle(color: Colors.white))),
                 const Center(child: Text('Package Settings', style: TextStyle(color: Colors.white))),
               ],
