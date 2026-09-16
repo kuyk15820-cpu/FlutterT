@@ -94,6 +94,11 @@ class KeyItem {
   final String? deletedAt;
   final List<String> devices;
 
+  // 🟢 เพิ่ม Field เกี่ยวกับเวลาตรงนี้
+  final String? createdAt;
+  final String? firstUsedAt;
+  final String? lastAccess;
+
   KeyItem({
     required this.id,
     this.originalId,
@@ -111,6 +116,9 @@ class KeyItem {
     this.reason,
     this.deletedAt,
     required this.devices,
+    this.createdAt,
+    this.firstUsedAt,
+    this.lastAccess,
   });
 
   factory KeyItem.fromJson(Map<String, dynamic> json) {
@@ -132,10 +140,17 @@ class KeyItem {
       banReason: json['ban_reason'],
       reason: json['reason'],
       deletedAt: json['deleted_at'],
-      // PHP คืนค่าคีย์ 'bound_devices'
       devices: List<String>.from(json['bound_devices'] ?? json['devices'] ?? []),
+      
+      // 🟢 ดึงค่าเวลาจาก JSON PHP
+      createdAt: json['created_at'],
+      firstUsedAt: json['first_used_at'],
+      lastAccess: json['last_access'],
     );
   }
+
+  // Getter สำหรับเช็กว่าคีย์นี้เป็น Pending หรือไม่
+  bool get isPending => firstUsedAt == null || firstUsedAt!.isEmpty;
 }
 
 // ==================================================================
