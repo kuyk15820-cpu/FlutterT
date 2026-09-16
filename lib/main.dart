@@ -6,7 +6,7 @@ import 'models/model.dart';
 import 'services/api_service.dart';
 import 'models/dashboard_tab.dart';
 import 'models/key_tab.dart';
-import 'models/package_tab.dart'; // 📌 เพิ่ม Import PackageTab
+import 'models/package_tab.dart';
 
 void main() {
   runApp(const MyApp());
@@ -56,6 +56,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
+  void _onTabSelected(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    // 📌 เมื่อสลับกลับมาที่หน้า Dashboard ให้สั่ง Refresh ข้อมูลดึงค่าล่าสุดทันที
+    if (index == 0) {
+      _refreshData();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
@@ -89,7 +99,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 DashboardTab(statsFuture: _statsFuture),
                 const KeyTab(),
                 const Center(child: Text('Device History', style: TextStyle(color: Colors.white))),
-                const PackageTab(), // 📌 เปลี่ยนจาก Placeholder เป็น PackageTab จริง
+                const PackageTab(),
               ],
             ),
           ),
@@ -164,7 +174,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       padding: EdgeInsets.zero,
       minSize: 0,
       pressedOpacity: 1.0,
-      onPressed: () => setState(() => _selectedIndex = index),
+      onPressed: () => _onTabSelected(index),
       child: SizedBox(
         width: width,
         child: Column(
