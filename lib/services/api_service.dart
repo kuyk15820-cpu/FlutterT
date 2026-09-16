@@ -64,12 +64,13 @@ class ApiService {
     }
   }
 
-  // ➕ 1. สร้าง Key ใหม่ (Dynamic, Static, Lifetime)
+  // ➕ 1. สร้าง Key ใหม่ (รองรับทั้งแบบเดี่ยว และ Bulk Creation ด้วย quantity)
   static Future<bool> createKey({
     required int projectId,
     required String type, // 'dynamic', 'static', 'lifetime'
     required int maxDevices,
     required String prefixType, // 'package', 'custom'
+    int quantity = 1, // 🟢 เพิ่มพารามิเตอร์ quantity ตรงนี้ (Default คือ 1)
     String? customPrefix,
     String? staticDate,
     int? durationNum,
@@ -81,6 +82,7 @@ class ApiService {
       'type': type,
       'max_devices': maxDevices,
       'prefix_type': prefixType,
+      'quantity': quantity, // 🟢 ส่งค่า quantity ไปยัง PHP
       'custom_prefix': customPrefix,
       'static_date': staticDate,
       'duration_num': durationNum,
