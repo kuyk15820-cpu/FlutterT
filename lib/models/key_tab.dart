@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import '../models/model.dart';
 import '../services/api_service.dart';
 
@@ -14,6 +15,7 @@ class KeyTab extends StatefulWidget {
 class _KeyTabState extends State<KeyTab> {
   String _selectedTab = 'active'; // 'active', 'banned', 'expired', 'deleted'
   late Future<List<KeyItem>> _keysFuture;
+  List<KeyItem> _currentKeyList = [];
   String _searchQuery = '';
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
@@ -47,6 +49,82 @@ class _KeyTabState extends State<KeyTab> {
     });
   }
 
+  // 🟢 เลือกทั้งหมด / ยกเลิกทั้งหมด
+  void _toggleSelectAll(List<KeyItem> displayedKeys) {
+    setState(() {
+      final allIds = displayedKeys.map((e) => e.id).toSet();
+      if (_selectedIds.length == allIds.length) {
+        _selectedIds.clear();
+        _isMultiSelectMode = false;
+      } else {
+        _selectedIds.addAll(allIds);
+        _isMultiSelectMode = true;
+      }
+    });
+  }
+
+  // 🟢 ฟังก์ชันคำนวณและแสดงผลระยะเวลาคงเหลืออย่างถูกต้อง (ชั่วโมง, วัน, สัปดาห์, เดือน, ปี)
+  String _formatRemainingTime(KeyItem key) {
+    if (key.type == 'lifetime' || key.duration == -1) {
+      return '∞ Lifetime';
+    }
+
+    if (key.isPending) {
+      return _formatHoursToReadableText(key.duration);
+    }
+
+    if (key.expireDate == null || key.expireDate!.isEmpty) {
+      return 'Not Activated';
+    }
+
+    final DateTime? expire = DateTime.tryParse(key.expireDate!);
+    if (expire == null) return 'Not Activated';
+
+    final DateTime now = DateTime.now();
+    final Duration diff = expire.difference(now);
+
+    if (diff.isNegative) return 'Expired';
+
+    final int minutes = diff.inMinutes;
+    final int hours = diff.inHours;
+    final int days = diff.inDays;
+
+    if (minutes < 60) {
+      return '$minutes Mins';
+    } else if (hours < 24) {
+      return '$hours Hours';
+    } else if (days < 7) {
+      return '$days Days';
+    } else if (days < 30) {
+      final weeks = (days / 7).floor();
+      final remDays = days % 7;
+      return remDays > 0 ? '$weeks Wks $remDays Days' : '$weeks Wks';
+    } else if (days < 365) {
+      final months = (days / 30).floor();
+      final remDays = days % 30;
+      return remDays > 0 ? '$months Mos $remDays Days' : '$months Mos';
+    } else {
+      final years = (days / 365).floor();
+      final remMonths = ((days % 365) / 30).floor();
+      return remMonths > 0 ? '$years Yrs $remMonths Mos' : '$years Yrs';
+    }
+  }
+
+  String _formatHoursToReadableText(int hours) {
+    if (hours <= 0) return '0 Hour';
+    if (hours < 24) {
+      return '$hours Hours';
+    } else if (hours < 24 * 7) {
+      return '${(hours / 24).round()} Days';
+    } else if (hours < 24 * 30) {
+      return '${(hours / (24 * 7)).round()} Weeks';
+    } else if (hours < 24 * 365) {
+      return '${(hours / (24 * 30)).round()} Months';
+    } else {
+      return '${(hours / (24 * 365)).round()} Years';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,49 +141,35 @@ class _KeyTabState extends State<KeyTab> {
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
-                      child: CupertinoActivityIndicator(
-                        radius: 14,
-                        color: Colors.white,
-                      ),
+                      child: CupertinoActivityIndicator(radius: 14, color: Colors.white),
                     );
                   } else if (snapshot.hasError) {
                     return Center(
-                      child: Text(
-                        'Error: ${snapshot.error}',
-                        style: const TextStyle(
-                          color: CupertinoColors.systemRed,
-                        ),
-                      ),
+                      child: Text('Error: ${snapshot.error}', style: const TextStyle(color: CupertinoColors.systemRed)),
                     );
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
                     return const Center(
-                      child: Text(
-                        'No keys found.',
-                        style: TextStyle(color: Color(0xFF64748B)),
-                      ),
+                      child: Text('No keys found.', style: TextStyle(color: Color(0xFF64748B))),
                     );
                   }
 
-                  final filteredKeys = snapshot.data!.where((item) {
+                  _currentKeyList = snapshot.data!.where((item) {
                     final query = _searchQuery.toLowerCase();
                     return item.tokenCode.toLowerCase().contains(query) ||
                         item.projectName.toLowerCase().contains(query);
                   }).toList();
 
-                  if (filteredKeys.isEmpty) {
+                  if (_currentKeyList.isEmpty) {
                     return const Center(
-                      child: Text(
-                        'No matching key found.',
-                        style: TextStyle(color: Color(0xFF64748B)),
-                      ),
+                      child: Text('No matching key found.', style: TextStyle(color: Color(0xFF64748B))),
                     );
                   }
 
                   return ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                    itemCount: filteredKeys.length,
+                    itemCount: _currentKeyList.length,
                     itemBuilder: (context, index) {
-                      final item = filteredKeys[index];
+                      final item = _currentKeyList[index];
                       return _buildKeyCard(item);
                     },
                   );
@@ -129,14 +193,8 @@ class _KeyTabState extends State<KeyTab> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            _isMultiSelectMode
-                ? 'Selected (${_selectedIds.length})'
-                : 'Keys',
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            _isMultiSelectMode ? 'Selected (${_selectedIds.length})' : 'Keys',
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           Row(
             children: [
@@ -147,11 +205,7 @@ class _KeyTabState extends State<KeyTab> {
                   tooltip: 'Create Key',
                 ),
                 IconButton(
-                  icon: Icon(
-                    _isSearching ? Icons.close : Icons.search,
-                    color: Colors.white,
-                    size: 22,
-                  ),
+                  icon: Icon(_isSearching ? Icons.close : Icons.search, color: Colors.white, size: 22),
                   onPressed: () {
                     setState(() {
                       _isSearching = !_isSearching;
@@ -164,33 +218,17 @@ class _KeyTabState extends State<KeyTab> {
                   tooltip: 'Search',
                 ),
                 PopupMenuButton<String>(
-                  icon: const Icon(
-                    Icons.tune,
-                    color: Colors.white,
-                    size: 22,
-                  ),
+                  icon: const Icon(Icons.tune, color: Colors.white, size: 22),
                   color: const Color(0xFF232330),
                   onSelected: (tab) {
                     setState(() => _selectedTab = tab);
                     _refreshData();
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'active',
-                      child: Text('🟢 Active Keys', style: TextStyle(color: Colors.white)),
-                    ),
-                    const PopupMenuItem(
-                      value: 'banned',
-                      child: Text('🚫 Banned Keys', style: TextStyle(color: Colors.white)),
-                    ),
-                    const PopupMenuItem(
-                      value: 'expired',
-                      child: Text('🟡 Expired Keys', style: TextStyle(color: Colors.white)),
-                    ),
-                    const PopupMenuItem(
-                      value: 'deleted',
-                      child: Text('🔴 Deleted History', style: TextStyle(color: Colors.white)),
-                    ),
+                    const PopupMenuItem(value: 'active', child: Text('🟢 Active Keys', style: TextStyle(color: Colors.white))),
+                    const PopupMenuItem(value: 'banned', child: Text('🚫 Banned Keys', style: TextStyle(color: Colors.white))),
+                    const PopupMenuItem(value: 'expired', child: Text('🟡 Expired Keys', style: TextStyle(color: Colors.white))),
+                    const PopupMenuItem(value: 'deleted', child: Text('🔴 Deleted History', style: TextStyle(color: Colors.white))),
                   ],
                 ),
                 IconButton(
@@ -199,7 +237,16 @@ class _KeyTabState extends State<KeyTab> {
                   tooltip: 'Clear All in Current Tab',
                 ),
               ],
-              if (_isMultiSelectMode)
+              if (_isMultiSelectMode) ...[
+                IconButton(
+                  icon: Icon(
+                    _selectedIds.length == _currentKeyList.length ? Icons.select_all : Icons.deselect,
+                    color: const Color(0xFF6366F1),
+                    size: 24,
+                  ),
+                  onPressed: () => _toggleSelectAll(_currentKeyList),
+                  tooltip: 'Select All / Deselect',
+                ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.white, size: 24),
                   onPressed: () {
@@ -210,6 +257,7 @@ class _KeyTabState extends State<KeyTab> {
                   },
                   tooltip: 'Cancel Selection',
                 ),
+              ],
               IconButton(
                 icon: const Icon(Icons.refresh, color: Color(0xFF94A3B8), size: 22),
                 onPressed: _refreshData,
@@ -226,10 +274,7 @@ class _KeyTabState extends State<KeyTab> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF232330),
-          borderRadius: BorderRadius.circular(12),
-        ),
+        decoration: BoxDecoration(color: const Color(0xFF232330), borderRadius: BorderRadius.circular(12)),
         child: TextField(
           controller: _searchController,
           onChanged: (value) => setState(() => _searchQuery = value),
@@ -305,7 +350,7 @@ class _KeyTabState extends State<KeyTab> {
     } else if (_selectedTab == 'expired') {
       statusText = 'EXPIRED';
       badgeColor = const Color(0xFFEF4444);
-    } else if (item.usedDevices > 0) {
+    } else if (!item.isPending) {
       statusText = 'ACTIVE';
       badgeColor = const Color(0xFF22C55E);
     } else if (_selectedTab == 'deleted') {
@@ -347,29 +392,17 @@ class _KeyTabState extends State<KeyTab> {
                     Expanded(
                       child: Text(
                         item.tokenCode,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          fontFamily: 'monospace',
-                        ),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'monospace'),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: badgeColor.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+                      decoration: BoxDecoration(color: badgeColor.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
                       child: Text(
                         statusText,
-                        style: TextStyle(
-                          color: badgeColor,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(color: badgeColor, fontSize: 10, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -377,13 +410,11 @@ class _KeyTabState extends State<KeyTab> {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.access_time, color: Color(0xFF94A3B8), size: 13),
+                    const Icon(Icons.timer_outlined, color: Color(0xFF94A3B8), size: 14),
                     const SizedBox(width: 4),
                     Text(
-                      item.type == 'lifetime'
-                          ? '∞ Lifetime'
-                          : '${item.duration > 0 ? (item.duration / 24).toStringAsFixed(0) : 0} day',
-                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                      _formatRemainingTime(item),
+                      style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -393,9 +424,12 @@ class _KeyTabState extends State<KeyTab> {
               const SizedBox(height: 8),
               _buildDetailRow('Package', item.projectName.isNotEmpty ? item.projectName : 'N/A'),
               if (_selectedTab != 'deleted') ...[
-                _buildDetailRow('Activated', item.usedDevices > 0 ? 'Yes' : 'No'),
+                _buildDetailRow('Activated', !item.isPending ? 'Yes' : 'No'),
                 _buildDetailRow('Device Limit', '${item.usedDevices}/${item.maxDevices}'),
-                _buildDetailRow('Expiry Date', item.expireDate ?? 'Not Activated'),
+                _buildDetailRow('Created At', item.createdAt ?? 'N/A'),
+                _buildDetailRow('First Used', item.firstUsedAt ?? 'Not Started'),
+                _buildDetailRow('Last Access', item.lastAccess ?? 'No Access Yet'),
+                _buildDetailRow('Expire Date', item.expireDate ?? 'Not Activated'),
                 if (item.isBanned) ...[
                   _buildDetailRow('Ban Expire', item.banExpire ?? 'Permanent'),
                   _buildDetailRow('Ban Reason', item.banReason ?? 'None'),
@@ -419,12 +453,12 @@ class _KeyTabState extends State<KeyTab> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
+          Text(label, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
           Expanded(
             child: Text(
               value,
               textAlign: TextAlign.end,
-              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -444,9 +478,7 @@ class _KeyTabState extends State<KeyTab> {
               color: const Color(0xFF3B82F6),
               onTap: () {
                 Clipboard.setData(ClipboardData(text: item.tokenCode));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Copied Key to Clipboard')),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied Key to Clipboard')));
               },
             ),
           ),
@@ -463,9 +495,7 @@ class _KeyTabState extends State<KeyTab> {
             color: const Color(0xFF3B82F6),
             onTap: () {
               Clipboard.setData(ClipboardData(text: item.tokenCode));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Copied Key to Clipboard')),
-              );
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied Key to Clipboard')));
             },
           ),
         ),
@@ -535,10 +565,7 @@ class _KeyTabState extends State<KeyTab> {
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(8),
-        ),
+        decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -564,15 +591,10 @@ class _KeyTabState extends State<KeyTab> {
   Future<void> _executeBulkAction(String action) async {
     if (_selectedIds.isEmpty) return;
     try {
-      await ApiService.bulkKeyAction(
-        bulkAction: action,
-        ids: _selectedIds.toList(),
-      );
+      await ApiService.bulkKeyAction(bulkAction: action, ids: _selectedIds.toList());
       _refreshData();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -637,8 +659,10 @@ class _KeyTabState extends State<KeyTab> {
     String prefixType = 'package';
     final customPrefixController = TextEditingController();
     final durationNumController = TextEditingController(text: '1');
+    final quantityController = TextEditingController(text: '1'); // 🟢 เพิ่มช่องจำนวนสร้าง
     String durationUnit = 'day';
     int maxDevices = 1;
+    DateTime selectedStaticDate = DateTime.now().add(const Duration(days: 1)); // 🟢 สำหรับ Static Key
 
     if (!mounted) return;
 
@@ -657,16 +681,8 @@ class _KeyTabState extends State<KeyTab> {
                     value: selectedProject,
                     dropdownColor: const Color(0xFF232330),
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Select Package',
-                      labelStyle: TextStyle(color: Color(0xFF94A3B8)),
-                    ),
-                    items: packages.map((pkg) {
-                      return DropdownMenuItem<int>(
-                        value: pkg.id,
-                        child: Text(pkg.name),
-                      );
-                    }).toList(),
+                    decoration: const InputDecoration(labelText: 'Select Package', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
+                    items: packages.map((pkg) => DropdownMenuItem<int>(value: pkg.id, child: Text(pkg.name))).toList(),
                     onChanged: (val) => setDialogState(() => selectedProject = val),
                   ),
                 const SizedBox(height: 10),
@@ -674,10 +690,7 @@ class _KeyTabState extends State<KeyTab> {
                   value: keyType,
                   dropdownColor: const Color(0xFF232330),
                   style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'Key Type',
-                    labelStyle: TextStyle(color: Color(0xFF94A3B8)),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Key Type', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
                   items: const [
                     DropdownMenuItem(value: 'dynamic', child: Text('Dynamic Key')),
                     DropdownMenuItem(value: 'static', child: Text('Static Key')),
@@ -690,10 +703,7 @@ class _KeyTabState extends State<KeyTab> {
                   value: prefixType,
                   dropdownColor: const Color(0xFF232330),
                   style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'Prefix Type',
-                    labelStyle: TextStyle(color: Color(0xFF94A3B8)),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Prefix Type', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
                   items: const [
                     DropdownMenuItem(value: 'package', child: Text('From Package Name')),
                     DropdownMenuItem(value: 'custom', child: Text('Custom Prefix')),
@@ -705,12 +715,11 @@ class _KeyTabState extends State<KeyTab> {
                   TextField(
                     controller: customPrefixController,
                     style: const TextStyle(color: Colors.white),
-                    decoration: const InputDecoration(
-                      labelText: 'Custom Prefix Value',
-                      labelStyle: TextStyle(color: Color(0xFF94A3B8)),
-                    ),
+                    decoration: const InputDecoration(labelText: 'Custom Prefix Value', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
                   ),
                 ],
+
+                // 🟢 กรณีเป็น Dynamic Key: เลือกตัวเลข และหน่วยเวลา (ชั่วโมง/วัน/สัปดาห์/เดือน/ปี)
                 if (keyType == 'dynamic') ...[
                   const SizedBox(height: 10),
                   Row(
@@ -720,10 +729,7 @@ class _KeyTabState extends State<KeyTab> {
                           controller: durationNumController,
                           keyboardType: TextInputType.number,
                           style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
-                            labelText: 'Duration',
-                            labelStyle: TextStyle(color: Color(0xFF94A3B8)),
-                          ),
+                          decoration: const InputDecoration(labelText: 'Duration', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -737,6 +743,7 @@ class _KeyTabState extends State<KeyTab> {
                             DropdownMenuItem(value: 'day', child: Text('Day')),
                             DropdownMenuItem(value: 'week', child: Text('Week')),
                             DropdownMenuItem(value: 'month', child: Text('Month')),
+                            DropdownMenuItem(value: 'year', child: Text('Year')),
                           ],
                           onChanged: (val) => setDialogState(() => durationUnit = val!),
                         ),
@@ -744,16 +751,85 @@ class _KeyTabState extends State<KeyTab> {
                     ],
                   ),
                 ],
-                const SizedBox(height: 10),
-                TextFormField(
-                  initialValue: '1',
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(
-                    labelText: 'Max Device Limit',
-                    labelStyle: TextStyle(color: Color(0xFF94A3B8)),
+
+                // 🟢 กรณีเป็น Static Key: แสดง UI ปุ่มเลือกวันเวลา (DatePicker + TimePicker)
+                if (keyType == 'static') ...[
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: () async {
+                      final DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: selectedStaticDate,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2035),
+                      );
+                      if (pickedDate != null && context.mounted) {
+                        final TimeOfDay? pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(selectedStaticDate),
+                        );
+                        if (pickedTime != null) {
+                          setDialogState(() {
+                            selectedStaticDate = DateTime(
+                              pickedDate.year,
+                              pickedDate.month,
+                              pickedDate.day,
+                              pickedTime.hour,
+                              pickedTime.minute,
+                            );
+                          });
+                        }
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFF94A3B8)),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Expire Date & Time', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
+                              const SizedBox(height: 2),
+                              Text(
+                                DateFormat('yyyy-MM-dd HH:mm').format(selectedStaticDate),
+                                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          const Icon(Icons.calendar_month, color: Color(0xFF6366F1), size: 20),
+                        ],
+                      ),
+                    ),
                   ),
-                  onChanged: (val) => maxDevices = int.tryParse(val) ?? 1,
+                ],
+
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: '1',
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(labelText: 'Max Device Limit', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
+                        onChanged: (val) => maxDevices = int.tryParse(val) ?? 1,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: quantityController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: const InputDecoration(labelText: 'Quantity (Keys)', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -773,7 +849,9 @@ class _KeyTabState extends State<KeyTab> {
                         type: keyType,
                         maxDevices: maxDevices,
                         prefixType: prefixType,
+                        quantity: int.tryParse(quantityController.text) ?? 1,
                         customPrefix: customPrefixController.text,
+                        staticDate: keyType == 'static' ? DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedStaticDate) : null,
                         durationNum: int.tryParse(durationNumController.text) ?? 1,
                         durationUnit: durationUnit,
                       );
@@ -806,10 +884,7 @@ class _KeyTabState extends State<KeyTab> {
                 value: banType,
                 dropdownColor: const Color(0xFF232330),
                 style: const TextStyle(color: Colors.white, fontSize: 14),
-                decoration: const InputDecoration(
-                  labelText: 'Ban Type',
-                  labelStyle: TextStyle(color: Color(0xFF94A3B8)),
-                ),
+                decoration: const InputDecoration(labelText: 'Ban Type', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
                 items: const [
                   DropdownMenuItem(value: 'permanent', child: Text('Permanent')),
                   DropdownMenuItem(value: 'temp', child: Text('Temporary (Hours)')),
@@ -822,20 +897,14 @@ class _KeyTabState extends State<KeyTab> {
                   controller: hoursController,
                   keyboardType: TextInputType.number,
                   style: const TextStyle(color: Colors.white, fontSize: 14),
-                  decoration: const InputDecoration(
-                    labelText: 'Ban Hours',
-                    labelStyle: TextStyle(color: Color(0xFF94A3B8)),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Ban Hours', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
                 ),
               ],
               const SizedBox(height: 10),
               TextField(
                 controller: reasonController,
                 style: const TextStyle(color: Colors.white, fontSize: 14),
-                decoration: const InputDecoration(
-                  labelText: 'Reason',
-                  labelStyle: TextStyle(color: Color(0xFF94A3B8)),
-                ),
+                decoration: const InputDecoration(labelText: 'Reason', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
               ),
             ],
           ),
@@ -880,10 +949,7 @@ class _KeyTabState extends State<KeyTab> {
                 initialValue: '1',
                 keyboardType: TextInputType.number,
                 style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  labelText: 'Duration',
-                  labelStyle: TextStyle(color: Color(0xFF94A3B8)),
-                ),
+                decoration: const InputDecoration(labelText: 'Duration', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
                 onChanged: (val) => renewNum = int.tryParse(val) ?? 1,
               ),
             ),
@@ -898,6 +964,7 @@ class _KeyTabState extends State<KeyTab> {
                   DropdownMenuItem(value: 'day', child: Text('Day')),
                   DropdownMenuItem(value: 'week', child: Text('Week')),
                   DropdownMenuItem(value: 'month', child: Text('Month')),
+                  DropdownMenuItem(value: 'year', child: Text('Year')),
                 ],
                 onChanged: (val) => renewUnit = val!,
               ),
