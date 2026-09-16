@@ -59,7 +59,7 @@ class DashboardTab extends StatelessWidget {
                 children: [
                   _buildStatCard(
                     'Total Devices',
-                    stats.totalDevices,
+                    '${stats.totalDevices}',
                     'Registered HWIDs',
                     FontAwesomeIcons.mobileScreen,
                     const Color(0xFFA855F7),
@@ -80,28 +80,28 @@ class DashboardTab extends StatelessWidget {
                 children: [
                   _buildStatCard(
                     'Total Packages',
-                    stats.packages.total,
+                    '${stats.packages.total}',
                     'Total Package',
                     FontAwesomeIcons.boxesStacked,
                     const Color(0xFF3B82F6),
                   ),
                   _buildStatCard(
                     'Active Packages',
-                    stats.packages.active,
+                    '${stats.packages.active}',
                     'Active Package',
                     FontAwesomeIcons.circleCheck,
                     const Color(0xFF22C55E),
                   ),
                   _buildStatCard(
                     'Maintenance',
-                    stats.packages.maintenance,
+                    '${stats.packages.maintenance}',
                     'Under maintenance',
                     FontAwesomeIcons.wrench,
                     const Color(0xFFEAB308),
                   ),
                   _buildStatCard(
                     'Deleted Packages',
-                    stats.packages.deleted,
+                    '${stats.packages.deleted}',
                     'Deleted Package',
                     FontAwesomeIcons.trash,
                     const Color(0xFFEF4444),
@@ -122,35 +122,35 @@ class DashboardTab extends StatelessWidget {
                 children: [
                   _buildStatCard(
                     'Total Keys',
-                    stats.keys.total,
+                    '${stats.keys.total}',
                     'Total Keys',
                     FontAwesomeIcons.key,
                     const Color(0xFF22C55E),
                   ),
                   _buildStatCard(
                     'Active Keys',
-                    stats.keys.active,
+                    '${stats.keys.active}',
                     'Active Key',
                     FontAwesomeIcons.shieldHalved,
                     const Color(0xFF3B82F6),
                   ),
                   _buildStatCard(
                     'Banned Keys',
-                    stats.keys.banned,
+                    '${stats.keys.banned}',
                     'Banned Key',
                     FontAwesomeIcons.userSlash,
                     const Color(0xFFEF4444),
                   ),
                   _buildStatCard(
                     'Expired Keys',
-                    stats.keys.expired,
+                    '${stats.keys.expired}',
                     'Expired Key',
                     FontAwesomeIcons.clockRotateLeft,
                     const Color(0xFFEAB308),
                   ),
                   _buildStatCard(
                     'Deleted Keys',
-                    stats.keys.deleted,
+                    '${stats.keys.deleted}',
                     'Deleted History',
                     FontAwesomeIcons.folderMinus,
                     const Color(0xFF94A3B8),
@@ -187,7 +187,7 @@ class DashboardTab extends StatelessWidget {
 
   Widget _buildStatCard(
     String title,
-    int value,
+    String value,
     String subtitle,
     dynamic icon,
     Color accentColor,
@@ -231,17 +231,14 @@ class DashboardTab extends StatelessWidget {
               ),
             ],
           ),
-          
-          // 📌 ตัวเลขพร้อม Animation เลื่อนขึ้นเวลานับเปลี่ยนค่า
-          AnimatedNumberText(
-            value: value,
+          Text(
+            value,
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
           ),
-
           Text(
             subtitle,
             maxLines: 1,
@@ -250,46 +247,6 @@ class DashboardTab extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// 📌 Widget สำหรับทำ Animation นับตัวเลขและ Transition การเลื่อน
-class AnimatedNumberText extends StatelessWidget {
-  final int value;
-  final TextStyle style;
-
-  const AnimatedNumberText({
-    super.key,
-    required this.value,
-    required this.style,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: value.toDouble()),
-      duration: const Duration(milliseconds: 800),
-      curve: Curves.easeOutCubic,
-      builder: (context, val, child) {
-        return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          transitionBuilder: (Widget child, Animation<double> animation) {
-            return SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.0, 0.4),
-                end: Offset.zero,
-              ).animate(animation),
-              child: FadeTransition(opacity: animation, child: child),
-            );
-          },
-          child: Text(
-            val.toInt().toString(),
-            key: ValueKey<int>(val.toInt()),
-            style: style,
-          ),
-        );
-      },
     );
   }
 }
