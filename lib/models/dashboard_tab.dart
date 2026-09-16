@@ -270,7 +270,7 @@ class AnimatedNumberText extends StatelessWidget {
     return TweenAnimationBuilder<double>(
       tween: Tween<double>(begin: 0, end: value.toDouble()),
       duration: const Duration(milliseconds: 800),
-      curve: Curves.outCubic,
+      curve: Curves.easeOutCubic,
       builder: (context, val, child) {
         return AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
