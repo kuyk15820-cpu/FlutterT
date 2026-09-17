@@ -64,7 +64,7 @@ class ApiService {
     }
   }
 
-  // ➕ 1. สร้าง Key ใหม่ (รองรับทั้งแบบเดี่ยว และ Bulk Creation ด้วย quantity)
+  // ➕ 1. สร้าง Key ใหม่ (รองรับ presetDuration แบบกำหนดเวลาตายตัว)
   static Future<bool> createKey({
     required int projectId,
     required String type, // 'dynamic', 'static', 'lifetime'
@@ -73,8 +73,7 @@ class ApiService {
     int quantity = 1, // ค่าเริ่มต้น 1
     String? customPrefix,
     String? staticDate,
-    int? durationNum,
-    String? durationUnit, // 'hour', 'day', 'week', 'month', 'year'
+    String? presetDuration, // '1hour', '3hour', '6hour', '12hour', '1day', '3day', '1week', '2week', '1month', '1year'
   }) async {
     return await manageKey({
       'action': 'create',
@@ -85,8 +84,7 @@ class ApiService {
       'quantity': quantity,
       'custom_prefix': customPrefix,
       'static_date': staticDate,
-      'duration_num': durationNum,
-      'duration_unit': durationUnit,
+      'preset_duration': presetDuration,
     });
   }
 
