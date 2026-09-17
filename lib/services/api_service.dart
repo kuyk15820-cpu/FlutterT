@@ -70,7 +70,7 @@ class ApiService {
     required String type, // 'dynamic', 'static', 'lifetime'
     required int maxDevices,
     required String prefixType, // 'package', 'custom'
-    int quantity = 1, // 🟢 เพิ่มพารามิเตอร์ quantity ตรงนี้ (Default คือ 1)
+    int quantity = 1, // ค่าเริ่มต้น 1
     String? customPrefix,
     String? staticDate,
     int? durationNum,
@@ -82,7 +82,7 @@ class ApiService {
       'type': type,
       'max_devices': maxDevices,
       'prefix_type': prefixType,
-      'quantity': quantity, // 🟢 ส่งค่า quantity ไปยัง PHP
+      'quantity': quantity,
       'custom_prefix': customPrefix,
       'static_date': staticDate,
       'duration_num': durationNum,
@@ -151,15 +151,19 @@ class ApiService {
     });
   }
 
-  // ⚡ 8. จัดการแบบกลุ่ม (Bulk Actions)
+  // ⚡ 8. จัดการแบบกลุ่ม (Bulk Actions - เพิ่มรองรับ Bulk Renew)
   static Future<bool> bulkKeyAction({
-    required String bulkAction, // 'delete_selected', 'ban_selected', 'unban_selected', 'reset_selected_devices', 'purge_selected_history'
+    required String bulkAction, // 'delete_selected', 'ban_selected', 'unban_selected', 'reset_selected_devices', 'purge_selected_history', 'renew_selected'
     required List<int> ids,
+    int? renewNum,
+    String? renewUnit,
   }) async {
     return await manageKey({
       'action': 'bulk_action',
       'bulk_action': bulkAction,
       'ids': ids,
+      'renew_num': renewNum,
+      'renew_unit': renewUnit,
     });
   }
 
