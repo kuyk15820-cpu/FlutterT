@@ -13,7 +13,7 @@ class KeyTab extends StatefulWidget {
 }
 
 class _KeyTabState extends State<KeyTab> {
-  String _selectedTab = 'active'; // 'active', 'banned', 'expired', 'deleted'
+  String _selectedTab = 'active'; // 'all', 'active', 'banned', 'expired', 'deleted'
   late Future<List<KeyItem>> _keysFuture;
   List<KeyItem> _currentKeyList = [];
   String _searchQuery = '';
@@ -225,6 +225,7 @@ class _KeyTabState extends State<KeyTab> {
                     _refreshData();
                   },
                   itemBuilder: (context) => [
+                    const PopupMenuItem(value: 'all', child: Text('🌐 All Keys', style: TextStyle(color: Colors.white))),
                     const PopupMenuItem(value: 'active', child: Text('🟢 Active Keys', style: TextStyle(color: Colors.white))),
                     const PopupMenuItem(value: 'banned', child: Text('🚫 Banned Keys', style: TextStyle(color: Colors.white))),
                     const PopupMenuItem(value: 'expired', child: Text('🟡 Expired Keys', style: TextStyle(color: Colors.white))),
@@ -293,7 +294,7 @@ class _KeyTabState extends State<KeyTab> {
 
   Widget _buildBulkActionBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
         color: const Color(0xFF232330),
@@ -304,12 +305,13 @@ class _KeyTabState extends State<KeyTab> {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           if (_selectedTab != 'deleted') ...[
-            _buildBulkActionButton('Ban', Icons.lock, Colors.orange, () => _executeBulkAction('ban_selected')),
-            _buildBulkActionButton('Unban', Icons.lock_open, Colors.green, () => _executeBulkAction('unban_selected')),
-            _buildBulkActionButton('Reset Device', Icons.rotate_left, Colors.blue, () => _executeBulkAction('reset_selected_devices')),
-            _buildBulkActionButton('Delete', Icons.delete, Colors.red, () => _executeBulkAction('delete_selected')),
+            _buildBulkActionButton('Renew', Icons.update, const Color(0xFF6366F1), () => _showBulkRenewDialog()),
+            _buildBulkActionButton('Ban', Icons.lock, Colors.orange, () => _confirmAction('Ban Selected Keys', 'Are you sure you want to ban ${_selectedIds.length} keys?', () => _executeBulkAction('ban_selected'))),
+            _buildBulkActionButton('Unban', Icons.lock_open, Colors.green, () => _confirmAction('Unban Selected Keys', 'Are you sure you want to unban ${_selectedIds.length} keys?', () => _executeBulkAction('unban_selected'))),
+            _buildBulkActionButton('Reset', Icons.rotate_left, Colors.blue, () => _confirmAction('Reset Device Limit', 'Are you sure you want to reset devices for ${_selectedIds.length} keys?', () => _executeBulkAction('reset_selected_devices'))),
+            _buildBulkActionButton('Delete', Icons.delete, Colors.red, () => _confirmAction('Delete Selected Keys', 'Are you sure you want to delete ${_selectedIds.length} keys?', () => _executeBulkAction('delete_selected'))),
           ] else ...[
-            _buildBulkActionButton('Purge Permanently', Icons.delete_forever, Colors.red, () => _executeBulkAction('purge_selected_history')),
+            _buildBulkActionButton('Purge Permanently', Icons.delete_forever, Colors.red, () => _confirmAction('Purge Keys Permanently', 'Are you sure you want to permanently delete ${_selectedIds.length} keys? This cannot be undone.', () => _executeBulkAction('purge_selected_history'))),
           ],
         ],
       ),
@@ -321,7 +323,7 @@ class _KeyTabState extends State<KeyTab> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -347,13 +349,13 @@ class _KeyTabState extends State<KeyTab> {
     if (item.isBanned) {
       statusText = 'BANNED';
       badgeColor = const Color(0xFFEF4444);
-    } else if (_selectedTab == 'expired') {
+    } else if (item.expireDate != null && item.expireDate!.isNotEmpty && DateTime.tryParse(item.expireDate!)?.isBefore(DateTime.now()) == true) {
       statusText = 'EXPIRED';
       badgeColor = const Color(0xFFEF4444);
     } else if (!item.isPending) {
       statusText = 'ACTIVE';
       badgeColor = const Color(0xFF22C55E);
-    } else if (_selectedTab == 'deleted') {
+    } else if (item.deletedAt != null && item.deletedAt!.isNotEmpty) {
       statusText = 'DELETED';
       badgeColor = const Color(0xFF64748B);
     }
@@ -423,7 +425,7 @@ class _KeyTabState extends State<KeyTab> {
             children: [
               const SizedBox(height: 8),
               _buildDetailRow('Package', item.projectName.isNotEmpty ? item.projectName : 'N/A'),
-              if (_selectedTab != 'deleted') ...[
+              if (_selectedTab != 'deleted' && (item.deletedAt == null || item.deletedAt!.isEmpty)) ...[
                 _buildDetailRow('Activated', !item.isPending ? 'Yes' : 'No'),
                 _buildDetailRow('Device Limit', '${item.usedDevices}/${item.maxDevices}'),
                 _buildDetailRow('Created At', item.createdAt ?? 'N/A'),
@@ -468,7 +470,7 @@ class _KeyTabState extends State<KeyTab> {
   }
 
   Widget _buildCardActionButtons(KeyItem item) {
-    if (_selectedTab == 'deleted') {
+    if (_selectedTab == 'deleted' || (item.deletedAt != null && item.deletedAt!.isNotEmpty)) {
       return Row(
         children: [
           Expanded(
@@ -516,10 +518,10 @@ class _KeyTabState extends State<KeyTab> {
             label: 'Reset',
             icon: Icons.rotate_left,
             color: const Color(0xFF3B82F6),
-            onTap: () async {
+            onTap: () => _confirmAction('Reset Device', 'Are you sure you want to reset device bound to this key?', () async {
               await ApiService.resetDevice(item.id);
               _refreshData();
-            },
+            }),
           ),
         ),
         const SizedBox(width: 6),
@@ -528,10 +530,12 @@ class _KeyTabState extends State<KeyTab> {
             label: item.isBanned ? 'Unlock' : 'Lock',
             icon: item.isBanned ? Icons.lock_open : Icons.lock,
             color: item.isBanned ? const Color(0xFF22C55E) : const Color(0xFFEAB308),
-            onTap: () async {
+            onTap: () {
               if (item.isBanned) {
-                await ApiService.unbanKey(item.id);
-                _refreshData();
+                _confirmAction('Unban Key', 'Are you sure you want to unban this key?', () async {
+                  await ApiService.unbanKey(item.id);
+                  _refreshData();
+                });
               } else {
                 _showBanDialog(item);
               }
@@ -544,10 +548,10 @@ class _KeyTabState extends State<KeyTab> {
             label: 'Delete',
             icon: Icons.delete_outline,
             color: const Color(0xFFEF4444),
-            onTap: () async {
+            onTap: () => _confirmAction('Delete Key', 'Are you sure you want to delete this key?', () async {
               await ApiService.deleteKey(item.id);
               _refreshData();
-            },
+            }),
           ),
         ),
       ],
@@ -585,24 +589,123 @@ class _KeyTabState extends State<KeyTab> {
   }
 
   // ------------------------------------------------------------------
+  // ALERT & CONFIRMATION HELPER
+  // ------------------------------------------------------------------
+
+  void _confirmAction(String title, String content, VoidCallback onConfirm) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF232330),
+        title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        content: Text(content, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
+            onPressed: () {
+              Navigator.pop(context);
+              onConfirm();
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------------
   // BULK ACTIONS & CLEAR ALL EXECUTION
   // ------------------------------------------------------------------
 
-  Future<void> _executeBulkAction(String action) async {
+  Future<void> _executeBulkAction(String action, {int? renewNum, String? renewUnit}) async {
     if (_selectedIds.isEmpty) return;
     try {
-      await ApiService.bulkKeyAction(bulkAction: action, ids: _selectedIds.toList());
+      await ApiService.bulkKeyAction(
+        bulkAction: action,
+        ids: _selectedIds.toList(),
+        renewNum: renewNum,
+        renewUnit: renewUnit,
+      );
       _refreshData();
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
+  void _showBulkRenewDialog() {
+    int renewNum = 1;
+    String renewUnit = 'day';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF232330),
+          title: Text('Bulk Renew (${_selectedIds.length} Keys)', style: const TextStyle(color: Colors.white, fontSize: 16)),
+          content: Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  initialValue: '1',
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Duration', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
+                  onChanged: (val) => renewNum = int.tryParse(val) ?? 1,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: renewUnit,
+                  dropdownColor: const Color(0xFF232330),
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  items: const [
+                    DropdownMenuItem(value: 'hour', child: Text('Hour')),
+                    DropdownMenuItem(value: 'day', child: Text('Day')),
+                    DropdownMenuItem(value: 'week', child: Text('Week')),
+                    DropdownMenuItem(value: 'month', child: Text('Month')),
+                    DropdownMenuItem(value: 'year', child: Text('Year')),
+                  ],
+                  onChanged: (val) => setDialogState(() => renewUnit = val!),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
+              onPressed: () {
+                Navigator.pop(context);
+                _confirmAction(
+                  'Confirm Bulk Renew',
+                  'Are you sure you want to extend duration by $renewNum $renewUnit for ${_selectedIds.length} selected keys?',
+                  () => _executeBulkAction('renew_selected', renewNum: renewNum, renewUnit: renewUnit),
+                );
+              },
+              child: const Text('Renew All Selected'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showClearAllConfirmDialog() {
     String targetTabAction = '';
     String title = '';
 
-    if (_selectedTab == 'active') {
+    if (_selectedTab == 'all') {
+      targetTabAction = 'clear_active_keys';
+      title = 'Clear All Active Keys';
+    } else if (_selectedTab == 'active') {
       targetTabAction = 'clear_active_keys';
       title = 'Clear All Active Keys';
     } else if (_selectedTab == 'banned') {
@@ -659,10 +762,10 @@ class _KeyTabState extends State<KeyTab> {
     String prefixType = 'package';
     final customPrefixController = TextEditingController();
     final durationNumController = TextEditingController(text: '1');
-    final quantityController = TextEditingController(text: '1'); // 🟢 เพิ่มช่องจำนวนสร้าง
+    final quantityController = TextEditingController(text: '1');
     String durationUnit = 'day';
     int maxDevices = 1;
-    DateTime selectedStaticDate = DateTime.now().add(const Duration(days: 1)); // 🟢 สำหรับ Static Key
+    DateTime selectedStaticDate = DateTime.now().add(const Duration(days: 1));
 
     if (!mounted) return;
 
@@ -719,7 +822,6 @@ class _KeyTabState extends State<KeyTab> {
                   ),
                 ],
 
-                // 🟢 กรณีเป็น Dynamic Key: เลือกตัวเลข และหน่วยเวลา (ชั่วโมง/วัน/สัปดาห์/เดือน/ปี)
                 if (keyType == 'dynamic') ...[
                   const SizedBox(height: 10),
                   Row(
@@ -752,7 +854,6 @@ class _KeyTabState extends State<KeyTab> {
                   ),
                 ],
 
-                // 🟢 กรณีเป็น Static Key: แสดง UI ปุ่มเลือกวันเวลา (DatePicker + TimePicker)
                 if (keyType == 'static') ...[
                   const SizedBox(height: 12),
                   InkWell(
@@ -939,57 +1040,65 @@ class _KeyTabState extends State<KeyTab> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF232330),
-        title: const Text('Edit / Renew Key', style: TextStyle(color: Colors.white, fontSize: 16)),
-        content: Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                initialValue: '1',
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(labelText: 'Duration', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
-                onChanged: (val) => renewNum = int.tryParse(val) ?? 1,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF232330),
+          title: const Text('Edit / Renew Key', style: TextStyle(color: Colors.white, fontSize: 16)),
+          content: Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  initialValue: '1',
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Duration', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
+                  onChanged: (val) => renewNum = int.tryParse(val) ?? 1,
+                ),
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: renewUnit,
+                  dropdownColor: const Color(0xFF232330),
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  items: const [
+                    DropdownMenuItem(value: 'hour', child: Text('Hour')),
+                    DropdownMenuItem(value: 'day', child: Text('Day')),
+                    DropdownMenuItem(value: 'week', child: Text('Week')),
+                    DropdownMenuItem(value: 'month', child: Text('Month')),
+                    DropdownMenuItem(value: 'year', child: Text('Year')),
+                  ],
+                  onChanged: (val) => setDialogState(() => renewUnit = val!),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                value: renewUnit,
-                dropdownColor: const Color(0xFF232330),
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                items: const [
-                  DropdownMenuItem(value: 'hour', child: Text('Hour')),
-                  DropdownMenuItem(value: 'day', child: Text('Day')),
-                  DropdownMenuItem(value: 'week', child: Text('Week')),
-                  DropdownMenuItem(value: 'month', child: Text('Month')),
-                  DropdownMenuItem(value: 'year', child: Text('Year')),
-                ],
-                onChanged: (val) => renewUnit = val!,
-              ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
+              onPressed: () {
+                Navigator.pop(context);
+                _confirmAction(
+                  'Confirm Renew Key',
+                  'Are you sure you want to renew this key for $renewNum $renewUnit?',
+                  () async {
+                    await ApiService.renewKey(
+                      keyId: item.id,
+                      renewNum: renewNum,
+                      renewUnit: renewUnit,
+                    );
+                    _refreshData();
+                  },
+                );
+              },
+              child: const Text('Renew'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFF64748B))),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
-            onPressed: () async {
-              await ApiService.renewKey(
-                keyId: item.id,
-                renewNum: renewNum,
-                renewUnit: renewUnit,
-              );
-              if (context.mounted) Navigator.pop(context);
-              _refreshData();
-            },
-            child: const Text('Renew'),
-          ),
-        ],
       ),
     );
   }
