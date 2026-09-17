@@ -761,9 +761,8 @@ class _KeyTabState extends State<KeyTab> {
     String keyType = 'dynamic';
     String prefixType = 'package';
     final customPrefixController = TextEditingController();
-    final durationNumController = TextEditingController(text: '1');
     final quantityController = TextEditingController(text: '1');
-    String durationUnit = 'day';
+    String presetDuration = '1day';
     int maxDevices = 1;
     DateTime selectedStaticDate = DateTime.now().add(const Duration(days: 1));
 
@@ -824,33 +823,24 @@ class _KeyTabState extends State<KeyTab> {
 
                 if (keyType == 'dynamic') ...[
                   const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: durationNumController,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(labelText: 'Duration', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: durationUnit,
-                          dropdownColor: const Color(0xFF232330),
-                          style: const TextStyle(color: Colors.white),
-                          items: const [
-                            DropdownMenuItem(value: 'hour', child: Text('Hour')),
-                            DropdownMenuItem(value: 'day', child: Text('Day')),
-                            DropdownMenuItem(value: 'week', child: Text('Week')),
-                            DropdownMenuItem(value: 'month', child: Text('Month')),
-                            DropdownMenuItem(value: 'year', child: Text('Year')),
-                          ],
-                          onChanged: (val) => setDialogState(() => durationUnit = val!),
-                        ),
-                      ),
+                  DropdownButtonFormField<String>(
+                    value: presetDuration,
+                    dropdownColor: const Color(0xFF232330),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(labelText: 'Duration Preset', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
+                    items: const [
+                      DropdownMenuItem(value: '1hour', child: Text('1 Hour')),
+                      DropdownMenuItem(value: '3hour', child: Text('3 Hours')),
+                      DropdownMenuItem(value: '6hour', child: Text('6 Hours')),
+                      DropdownMenuItem(value: '12hour', child: Text('12 Hours')),
+                      DropdownMenuItem(value: '1day', child: Text('1 Day')),
+                      DropdownMenuItem(value: '3day', child: Text('3 Days')),
+                      DropdownMenuItem(value: '1week', child: Text('1 Week')),
+                      DropdownMenuItem(value: '2week', child: Text('2 Weeks')),
+                      DropdownMenuItem(value: '1month', child: Text('1 Month')),
+                      DropdownMenuItem(value: '1year', child: Text('1 Year')),
                     ],
+                    onChanged: (val) => setDialogState(() => presetDuration = val!),
                   ),
                 ],
 
@@ -953,8 +943,7 @@ class _KeyTabState extends State<KeyTab> {
                         quantity: int.tryParse(quantityController.text) ?? 1,
                         customPrefix: customPrefixController.text,
                         staticDate: keyType == 'static' ? DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedStaticDate) : null,
-                        durationNum: int.tryParse(durationNumController.text) ?? 1,
-                        durationUnit: durationUnit,
+                        presetDuration: keyType == 'dynamic' ? presetDuration : null,
                       );
                       if (context.mounted) Navigator.pop(context);
                       if (success) _refreshData();
