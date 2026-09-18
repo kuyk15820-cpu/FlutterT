@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // 📌 1. เพิ่ม shared_preferences
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
-import 'sign_up_page.dart'; // 📌 2. Import หน้า SignUpPage
+import '../main.dart'; // 📌 Import main.dart เพื่อนำทางไป MainNavigationScreen
+import 'sign_up_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -18,7 +19,6 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
-  // 📌 3. เคลียร์ Memory เมื่อปิดหน้า
   @override
   void dispose() {
     _userController.dispose();
@@ -39,13 +39,13 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
-      // 📌 4. บันทึก Token และ ข้อมูลผู้ใช้ ลงเครื่อง
+      // 📌 บันทึก Token และ ข้อมูลผู้ใช้ ลงเครื่อง
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', user.token);
       await prefs.setInt('user_id', user.id);
       await prefs.setString('username', user.username);
 
-      // แสดง SnackBar สำเร็จ
+      // แสดง SnackBar แจ้งเตือนเมื่อสำเร็จ
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('ยินดีต้อนรับ ${user.username}'),
@@ -53,8 +53,11 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
 
-      // 📌 5. นำทางไปหน้า Dashboard (ปลดคอมเมนต์และเปลี่ยนชื่อ Route/Page ตามโครงสร้างโปรเจกต์)
-      // Navigator.pushReplacementNamed(context, '/dashboard');
+      // 📌 นำทางเปลี่ยนหน้าไป MainNavigationScreen ทันที
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+      );
 
     } catch (e) {
       if (!mounted) return;
@@ -95,7 +98,7 @@ class _LoginPageState extends State<LoginPage> {
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAlignment.stretch,
+                crossAlignment: CrossAlignment.stretch,
                 children: [
                   const Icon(Icons.lock_person_rounded, size: 64, color: Colors.indigoAccent),
                   const SizedBox(height: 16),
@@ -121,9 +124,12 @@ class _LoginPageState extends State<LoginPage> {
                       prefixIcon: const Icon(Icons.person_outline, color: Colors.indigoAccent),
                       filled: true,
                       fillColor: Colors.black26,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
-                    validator: (v) => v == null || v.isEmpty ? 'กรุณากรอก Username หรือ Email' : null,
+                    validator: (v) => v == null || v.trim().isEmpty ? 'กรุณากรอก Username หรือ Email' : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -142,7 +148,10 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       filled: true,
                       fillColor: Colors.black26,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                     validator: (v) => v == null || v.isEmpty ? 'กรุณากรอก Password' : null,
                   ),
@@ -157,12 +166,19 @@ class _LoginPageState extends State<LoginPage> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: _isLoading
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          )
+                        : const Text(
+                            'Sign In',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
                   ),
                   const SizedBox(height: 20),
 
-                  // 📌 6. เพิ่มปุ่มสลับไปหน้า Sign Up
+                  // ปุ่มสลับไปหน้า Sign Up
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
