@@ -1,21 +1,26 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/model.dart'; // Import Data Models ทั้งหมด
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/model.dart';
 
 class ApiService {
   static const String baseUrl = 'https://f1x3r.org/api/webserver/app';
 
-  // Helper Headers กลางสำหรับ HTTP Requests
+  // 📌 Helper ดึง Header แบบแนบ Bearer Token จาก SharedPreferences อัตโนมัติ
+  static Future<Map<String, String>> _getAuthHeaders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token') ?? '';
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  // Helper Header สำหรับ Request ทั่วไปที่ไม่ต้องแนบ Token (เช่น Login / Register)
   static Map<String, String> get _defaultHeaders => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-      };
-
-  // Helper Headers พร้อม Bearer Token สำหรับ Authenticated Requests
-  static Map<String, String> _authHeaders(String token) => {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': 'Bearer $token',
       };
 
   // ==================================================================
@@ -81,7 +86,11 @@ class ApiService {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/check_auth.php'),
-        headers: _authHeaders(token),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
       );
 
       if (response.statusCode == 200) {
@@ -97,9 +106,10 @@ class ApiService {
   /// ออกจากระบบ (Logout)
   static Future<bool> logout() async {
     try {
+      final headers = await _getAuthHeaders();
       final response = await http.post(
         Uri.parse('$baseUrl/logout.php'),
-        headers: _defaultHeaders,
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -118,9 +128,10 @@ class ApiService {
 
   /// ดึงข้อมูลสถิติภาพรวม Dashboard
   static Future<DashboardStats> fetchDashboardStats() async {
+    final headers = await _getAuthHeaders();
     final response = await http.get(
       Uri.parse('$baseUrl/get_dashboard_stats.php'),
-      headers: _defaultHeaders,
+      headers: headers,
     );
 
     if (response.statusCode == 200) {
@@ -141,9 +152,10 @@ class ApiService {
 
   /// ดึงรายการ Key ตาม Tab ('active', 'banned', 'expired', 'deleted')
   static Future<List<KeyItem>> fetchKeys(String tab) async {
+    final headers = await _getAuthHeaders();
     final response = await http.get(
       Uri.parse('$baseUrl/get_keys.php?tab=$tab'),
-      headers: _defaultHeaders,
+      headers: headers,
     );
 
     if (response.statusCode == 200) {
@@ -161,9 +173,10 @@ class ApiService {
 
   /// ⚡ ฟังก์ชันกลางสำหรับส่ง Request ไปที่ manage_key.php
   static Future<dynamic> manageKey(Map<String, dynamic> bodyData) async {
+    final headers = await _getAuthHeaders();
     final response = await http.post(
       Uri.parse('$baseUrl/manage_key.php'),
-      headers: _defaultHeaders,
+      headers: headers,
       body: jsonEncode(bodyData),
     );
 
@@ -182,9 +195,9 @@ class ApiService {
   /// ➕ 1. สร้าง Key ใหม่
   static Future<dynamic> createKey({
     required int projectId,
-    required String type, // 'dynamic', 'static', 'lifetime'
+    required String type,
     required int maxDevices,
-    required String prefixType, // 'package', 'custom'
+    required String prefixType,
     int quantity = 1,
     String? customPrefix,
     String? staticDate,
@@ -206,7 +219,7 @@ class ApiService {
   /// 🔴 2. สั่งแบน / แก้ไขการแบน Key
   static Future<bool> banKey({
     required int keyId,
-    required String banType, // 'permanent', 'temp'
+    required String banType,
     int? banHours,
     String? reason,
   }) async {
@@ -298,9 +311,10 @@ class ApiService {
 
   /// ดึงรายการ Package ตาม Tab ('active', 'maint', 'deleted')
   static Future<List<PackageItem>> fetchPackages(String tab) async {
+    final headers = await _getAuthHeaders();
     final response = await http.get(
       Uri.parse('$baseUrl/get_packages.php?tab=$tab'),
-      headers: _defaultHeaders,
+      headers: headers,
     );
 
     if (response.statusCode == 200) {
@@ -318,9 +332,10 @@ class ApiService {
 
   /// ⚡ ฟังก์ชันกลางสำหรับส่ง Request ไปที่ manage_package.php
   static Future<bool> managePackage(Map<String, dynamic> bodyData) async {
+    final headers = await _getAuthHeaders();
     final response = await http.post(
       Uri.parse('$baseUrl/manage_package.php'),
-      headers: _defaultHeaders,
+      headers: headers,
       body: jsonEncode(bodyData),
     );
 
