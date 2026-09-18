@@ -1,22 +1,38 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/model.dart'; // Import รวม Data Models ทั้งหมด
+import '../models/model.dart'; // Import Data Models ทั้งหมด
 
 class ApiService {
   static const String baseUrl = 'https://f1x3r.org/api/webserver/app';
 
+  // Helper Headers กลางสำหรับ HTTP Requests
+  static Map<String, String> get _defaultHeaders => {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+
   // ==================================================================
-  // 1. DASHBOARD STATS API
+  // 1. AUTHENTICATION API
   // ==================================================================
-  static Future<DashboardStats> fetchDashboardStats() async {
-    final response = await http.get(Uri.parse('$baseUrl/get_dashboard_stats.php'));
+
+  /// เข้าสู่ระบบ Admin
+  static Future<AdminUser> login(String username, String password) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/auth.php'),
+      headers: _defaultHeaders,
+      body: jsonEncode({
+        'action': 'login',
+        'username': username,
+        'password': password,
+      }),
+    );
 
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
       if (jsonResponse['status'] == 'success') {
-        return DashboardStats.fromJson(jsonResponse);
+        return AdminUser.fromJson(jsonResponse['data']);
       } else {
-        throw Exception(jsonResponse['message'] ?? 'Failed to load stats');
+        throw Exception(jsonResponse['message'] ?? 'เข้าสู่ระบบไม่สำเร็จ');
       }
     } else {
       throw Exception('Server error: ${response.statusCode}');
@@ -24,17 +40,43 @@ class ApiService {
   }
 
   // ==================================================================
-  // 2. KEY MANAGEMENT API
+  // 2. DASHBOARD STATS API
   // ==================================================================
 
-  // 🟢 ดึงรายการ Key ตาม Tab ('active', 'banned', 'expired', 'deleted')
-  static Future<List<KeyItem>> fetchKeys(String tab) async {
-    final response = await http.get(Uri.parse('$baseUrl/get_keys.php?tab=$tab'));
+  /// ดึงข้อมูลสถิติภาพรวม Dashboard
+  static Future<DashboardStats> fetchDashboardStats() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/get_dashboard_stats.php'),
+      headers: _defaultHeaders,
+    );
 
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
       if (jsonResponse['status'] == 'success') {
-        final List list = jsonResponse['data'];
+        return DashboardStats.fromJson(jsonResponse);
+      } else {
+        throw Exception(jsonResponse['message'] ?? ' Failed to load stats');
+      }
+    } else {
+      throw Exception('Server error: ${response.statusCode}');
+    }
+  }
+
+  // ==================================================================
+  // 3. KEY MANAGEMENT API
+  // ==================================================================
+
+  /// ดึงรายการ Key ตาม Tab ('active', 'banned', 'expired', 'deleted')
+  static Future<List<KeyItem>> fetchKeys(String tab) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/get_keys.php?tab=$tab'),
+      headers: _defaultHeaders,
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      if (jsonResponse['status'] == 'success') {
+        final List list = jsonResponse['data'] ?? [];
         return list.map((item) => KeyItem.fromJson(item)).toList();
       } else {
         throw Exception(jsonResponse['message'] ?? 'Failed to load keys');
@@ -44,18 +86,19 @@ class ApiService {
     }
   }
 
-  // ⚡ ฟังก์ชันกลางสำหรับส่ง Request ไปที่ manage_key.php
-  static Future<bool> manageKey(Map<String, dynamic> bodyData) async {
+  /// ⚡ ฟังก์ชันกลางสำหรับส่ง Request ไปที่ manage_key.php
+  static Future<dynamic> manageKey(Map<String, dynamic> bodyData) async {
     final response = await http.post(
       Uri.parse('$baseUrl/manage_key.php'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _defaultHeaders,
       body: jsonEncode(bodyData),
     );
 
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
       if (jsonResponse['status'] == 'success') {
-        return true;
+        // หากมี data คืนกลับมา (เช่น รายการคีย์สร้างใหม่) ให้ส่ง data กลับ
+        return jsonResponse['data'] ?? true;
       } else {
         throw Exception(jsonResponse['message'] ?? 'Key action failed');
       }
@@ -64,13 +107,13 @@ class ApiService {
     }
   }
 
-  // ➕ 1. สร้าง Key ใหม่ (รองรับ presetDuration แบบกำหนดเวลาตายตัว)
-  static Future<bool> createKey({
+  /// ➕ 1. สร้าง Key ใหม่ (คืนค่าเป็น dynamic เพื่อรองรับ Array Key ที่ถูกสร้าง)
+  static Future<dynamic> createKey({
     required int projectId,
     required String type, // 'dynamic', 'static', 'lifetime'
     required int maxDevices,
     required String prefixType, // 'package', 'custom'
-    int quantity = 1, // ค่าเริ่มต้น 1
+    int quantity = 1,
     String? customPrefix,
     String? staticDate,
     String? presetDuration, // '1hour', '3hour', '6hour', '12hour', '1day', '3day', '1week', '2week', '1month', '1year'
@@ -88,99 +131,110 @@ class ApiService {
     });
   }
 
-  // 🔴 2. สั่งแบน / แก้ไขการแบน Key
+  /// 🔴 2. สั่งแบน / แก้ไขการแบน Key
   static Future<bool> banKey({
     required int keyId,
     required String banType, // 'permanent', 'temp'
     int? banHours,
     String? reason,
   }) async {
-    return await manageKey({
+    final res = await manageKey({
       'action': 'ban',
       'key_id': keyId,
       'ban_type': banType,
       'ban_hours': banHours,
       'ban_reason': reason,
     });
+    return res != null;
   }
 
-  // 🟢 3. ปลดแบน Key เดี่ยว
+  /// 🟢 3. ปลดแบน Key เดี่ยว
   static Future<bool> unbanKey(int keyId) async {
-    return await manageKey({
+    final res = await manageKey({
       'action': 'unban',
       'key_id': keyId,
     });
+    return res != null;
   }
 
-  // ⏳ 4. ต่ออายุ Key เดี่ยว (ปรับใช้ Preset Duration)
+  /// ⏳ 4. ต่ออายุ Key เดี่ยว (ปรับใช้ Preset Duration)
   static Future<bool> renewKey({
     required int keyId,
-    required String presetDuration, // '1hour', '3hour', '6hour', '12hour', '1day', '3day', '1week', '2week', '1month', '1year'
+    required String presetDuration,
   }) async {
-    return await manageKey({
+    final res = await manageKey({
       'action': 'renew',
       'key_id': keyId,
       'preset_duration': presetDuration,
     });
+    return res != null;
   }
 
-  // 🔄 5. รีเซ็ต Device เดี่ยว
+  /// 🔄 5. รีเซ็ต Device เดี่ยว
   static Future<bool> resetDevice(int keyId) async {
-    return await manageKey({
+    final res = await manageKey({
       'action': 'reset_device',
       'key_id': keyId,
     });
+    return res != null;
   }
 
-  // 🔄 6. รีเซ็ต Device ทั้งหมดของ Key ในระบบที่ Active
+  /// 🔄 6. รีเซ็ต Device ทั้งหมดของ Key ในระบบที่ Active
   static Future<bool> resetAllDevices() async {
-    return await manageKey({
+    final res = await manageKey({
       'action': 'reset_all_devices',
     });
+    return res != null;
   }
 
-  // 🗑️ 7. ลบคีย์เดี่ยว
+  /// 🗑️ 7. ลบคีย์เดี่ยว
   static Future<bool> deleteKey(int keyId) async {
-    return await manageKey({
+    final res = await manageKey({
       'action': 'delete',
       'key_id': keyId,
     });
+    return res != null;
   }
 
-  // ⚡ 8. จัดการแบบกลุ่ม (Bulk Actions - รองรับ Bulk Renew แบบ Preset Duration)
+  /// ⚡ 8. จัดการแบบกลุ่ม (Bulk Actions)
   static Future<bool> bulkKeyAction({
     required String bulkAction, // 'delete_selected', 'ban_selected', 'unban_selected', 'reset_selected_devices', 'purge_selected_history', 'renew_selected'
     required List<int> ids,
-    String? presetDuration, // ส่งเมื่อ bulkAction เป็น 'renew_selected'
+    String? presetDuration,
   }) async {
-    return await manageKey({
+    final res = await manageKey({
       'action': 'bulk_action',
       'bulk_action': bulkAction,
       'ids': ids,
       'preset_duration': presetDuration,
     });
+    return res != null;
   }
 
-  // 🧹 9. เคลียร์ข้อมูลทั้งหมดตามหมวดหมู่ (Clear All)
+  /// 🧹 9. เคลียร์ข้อมูลทั้งหมดตามหมวดหมู่ (Clear All)
   static Future<bool> clearAllKeys(String targetTab) async {
-    return await manageKey({
+    final res = await manageKey({
       'action': 'clear_all',
-      'target_tab': targetTab, // 'clear_active_keys', 'unban_all_keys', 'clear_banned_keys', 'clear_expired_keys', 'clear_deleted_history'
+      'target_tab': targetTab,
     });
+    return res != null;
   }
 
   // ==================================================================
-  // 3. PACKAGE MANAGEMENT API
+  // 4. PACKAGE MANAGEMENT API
   // ==================================================================
 
-  // 🟢 ดึงรายการ Package ตาม Tab ('active', 'maint', 'deleted')
+  /// ดึงรายการ Package ตาม Tab ('active', 'maint', 'deleted')
   static Future<List<PackageItem>> fetchPackages(String tab) async {
-    final response = await http.get(Uri.parse('$baseUrl/get_packages.php?tab=$tab'));
+    final response = await http.get(
+      Uri.parse('$baseUrl/get_packages.php?tab=$tab'),
+      headers: _defaultHeaders,
+    );
 
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
       if (jsonResponse['status'] == 'success') {
-        final List list = jsonResponse['data'];
+        final List list = jsonResponse['data'] ?? [];
         return list.map((item) => PackageItem.fromJson(item)).toList();
       } else {
         throw Exception(jsonResponse['message'] ?? 'Failed to load packages');
@@ -190,11 +244,11 @@ class ApiService {
     }
   }
 
-  // ⚡ ฟังก์ชันกลางสำหรับส่ง Request ไปที่ manage_package.php
+  /// ⚡ ฟังก์ชันกลางสำหรับส่ง Request ไปที่ manage_package.php
   static Future<bool> managePackage(Map<String, dynamic> bodyData) async {
     final response = await http.post(
       Uri.parse('$baseUrl/manage_package.php'),
-      headers: {'Content-Type': 'application/json'},
+      headers: _defaultHeaders,
       body: jsonEncode(bodyData),
     );
 
@@ -210,7 +264,7 @@ class ApiService {
     }
   }
 
-  // ➕ 1. สร้าง Package ใหม่
+  /// ➕ 1. สร้าง Package ใหม่
   static Future<bool> createPackage({
     required String name,
     String? contact,
@@ -222,7 +276,7 @@ class ApiService {
     });
   }
 
-  // ✏️ 2. แก้ไข Package
+  /// ✏️ 2. แก้ไข Package
   static Future<bool> editPackage({
     required int id,
     required String name,
@@ -236,7 +290,7 @@ class ApiService {
     });
   }
 
-  // 🛠️ 3. สลับสถานะ Maintenance (เปิด/ปิด)
+  /// 🛠️ 3. สลับสถานะ Maintenance (เปิด/ปิด)
   static Future<bool> togglePackageMaintenance(int id, int currentStatus) async {
     return await managePackage({
       'action': 'toggle_maint',
@@ -245,7 +299,7 @@ class ApiService {
     });
   }
 
-  // 🗑️ 4. ลบ Package เดี่ยว
+  /// 🗑️ 4. ลบ Package เดี่ยว
   static Future<bool> deletePackage(int id) async {
     return await managePackage({
       'action': 'delete',
@@ -253,7 +307,7 @@ class ApiService {
     });
   }
 
-  // ♻️ 5. กู้คืน Package เดี่ยว
+  /// ♻️ 5. กู้คืน Package เดี่ยว
   static Future<bool> restorePackage(int id) async {
     return await managePackage({
       'action': 'restore',
@@ -261,23 +315,23 @@ class ApiService {
     });
   }
 
-  // ⚡ 6. จัดการกลุ่ม Package (Bulk Actions)
+  /// ⚡ 6. จัดการกลุ่ม Package (Bulk Actions - แก้ไข typo สbulk_action แล้ว)
   static Future<bool> bulkPackageAction({
     required String bulkAction, // 'delete_selected', 'maint_selected', 'restore_selected', 'purge_selected_history'
     required List<int> ids,
   }) async {
     return await managePackage({
       'action': 'bulk_action',
-      'สbulk_action': bulkAction,
+      'bulk_action': bulkAction,
       'ids': ids,
     });
   }
 
-  // 🧹 7. ล้างข้อมูล Package ทั้งหมดตามหมวดหมู่ (Clear All)
+  /// 🧹 7. ล้างข้อมูล Package ทั้งหมดตามหมวดหมู่ (Clear All)
   static Future<bool> clearAllPackages(String targetTab) async {
     return await managePackage({
       'action': 'clear_all',
-      'target_tab': targetTab, // 'clear_active_packages', 'clear_maint_packages', 'clear_deleted_packages'
+      'target_tab': targetTab,
     });
   }
 }
