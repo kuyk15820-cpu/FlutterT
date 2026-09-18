@@ -11,31 +11,104 @@ class ApiService {
         'Accept': 'application/json',
       };
 
+  // Helper Headers พร้อม Bearer Token สำหรับ Authenticated Requests
+  static Map<String, String> _authHeaders(String token) => {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+
   // ==================================================================
   // 1. AUTHENTICATION API
   // ==================================================================
 
-  /// เข้าสู่ระบบ Admin
-  static Future<AdminUser> login(String username, String password) async {
+  /// เข้าสู่ระบบ (Login)
+  static Future<AdminUser> login(String usernameOrEmail, String password) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth.php'),
+      Uri.parse('$baseUrl/login.php'),
       headers: _defaultHeaders,
       body: jsonEncode({
-        'action': 'login',
+        'user_login': usernameOrEmail,
+        'user_password': password,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final jsonResponse = jsonDecode(response.body);
+      if (jsonResponse['status'] == true) {
+        final userData = jsonResponse['data'];
+        return AdminUser(
+          id: int.parse(userData['user_id'].toString()),
+          username: userData['username'] ?? '',
+          token: userData['session_token'] ?? '',
+        );
+      } else {
+        throw Exception(jsonResponse['message'] ?? 'เข้าสู่ระบบไม่สำเร็จ');
+      }
+    } else {
+      final jsonResponse = jsonDecode(response.body);
+      throw Exception(jsonResponse['message'] ?? 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+    }
+  }
+
+  /// สมัครสมาชิก (Register)
+  static Future<bool> register({
+    required String username,
+    required String email,
+    required String password,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/register.php'),
+      headers: _defaultHeaders,
+      body: jsonEncode({
         'username': username,
+        'email': email,
         'password': password,
       }),
     );
 
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
-      if (jsonResponse['status'] == 'success') {
-        return AdminUser.fromJson(jsonResponse['data']);
-      } else {
-        throw Exception(jsonResponse['message'] ?? 'เข้าสู่ระบบไม่สำเร็จ');
-      }
+      return jsonResponse['status'] == true;
     } else {
-      throw Exception('Server error: ${response.statusCode}');
+      final jsonResponse = jsonDecode(response.body);
+      throw Exception(jsonResponse['message'] ?? 'การลงทะเบียนล้มเหลว');
+    }
+  }
+
+  /// เช็กสถานะล็อกอิน (Check Auth Status)
+  static Future<bool> checkAuthStatus(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/check_auth.php'),
+        headers: _authHeaders(token),
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        return jsonResponse['is_authenticated'] == true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// ออกจากระบบ (Logout)
+  static Future<bool> logout() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/logout.php'),
+        headers: _defaultHeaders,
+      );
+
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(response.body);
+        return jsonResponse['status'] == true;
+      }
+      return false;
+    } catch (e) {
+      return true; // ล้าง Session ฝั่งเครื่องแม้เรียก API ไม่สำเร็จ
     }
   }
 
@@ -55,7 +128,7 @@ class ApiService {
       if (jsonResponse['status'] == 'success') {
         return DashboardStats.fromJson(jsonResponse);
       } else {
-        throw Exception(jsonResponse['message'] ?? ' Failed to load stats');
+        throw Exception(jsonResponse['message'] ?? 'Failed to load stats');
       }
     } else {
       throw Exception('Server error: ${response.statusCode}');
@@ -97,7 +170,6 @@ class ApiService {
     if (response.statusCode == 200) {
       final jsonResponse = jsonDecode(response.body);
       if (jsonResponse['status'] == 'success') {
-        // หากมี data คืนกลับมา (เช่น รายการคีย์สร้างใหม่) ให้ส่ง data กลับ
         return jsonResponse['data'] ?? true;
       } else {
         throw Exception(jsonResponse['message'] ?? 'Key action failed');
@@ -107,7 +179,7 @@ class ApiService {
     }
   }
 
-  /// ➕ 1. สร้าง Key ใหม่ (คืนค่าเป็น dynamic เพื่อรองรับ Array Key ที่ถูกสร้าง)
+  /// ➕ 1. สร้าง Key ใหม่
   static Future<dynamic> createKey({
     required int projectId,
     required String type, // 'dynamic', 'static', 'lifetime'
@@ -116,7 +188,7 @@ class ApiService {
     int quantity = 1,
     String? customPrefix,
     String? staticDate,
-    String? presetDuration, // '1hour', '3hour', '6hour', '12hour', '1day', '3day', '1week', '2week', '1month', '1year'
+    String? presetDuration,
   }) async {
     return await manageKey({
       'action': 'create',
@@ -157,7 +229,7 @@ class ApiService {
     return res != null;
   }
 
-  /// ⏳ 4. ต่ออายุ Key เดี่ยว (ปรับใช้ Preset Duration)
+  /// ⏳ 4. ต่ออายุ Key เดี่ยว
   static Future<bool> renewKey({
     required int keyId,
     required String presetDuration,
@@ -198,7 +270,7 @@ class ApiService {
 
   /// ⚡ 8. จัดการแบบกลุ่ม (Bulk Actions)
   static Future<bool> bulkKeyAction({
-    required String bulkAction, // 'delete_selected', 'ban_selected', 'unban_selected', 'reset_selected_devices', 'purge_selected_history', 'renew_selected'
+    required String bulkAction,
     required List<int> ids,
     String? presetDuration,
   }) async {
@@ -315,9 +387,9 @@ class ApiService {
     });
   }
 
-  /// ⚡ 6. จัดการกลุ่ม Package (Bulk Actions - แก้ไข typo สbulk_action แล้ว)
+  /// ⚡ 6. จัดการกลุ่ม Package (Bulk Actions)
   static Future<bool> bulkPackageAction({
-    required String bulkAction, // 'delete_selected', 'maint_selected', 'restore_selected', 'purge_selected_history'
+    required String bulkAction,
     required List<int> ids,
   }) async {
     return await managePackage({
