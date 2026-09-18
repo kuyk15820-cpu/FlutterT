@@ -621,14 +621,13 @@ class _KeyTabState extends State<KeyTab> {
   // BULK ACTIONS & CLEAR ALL EXECUTION
   // ------------------------------------------------------------------
 
-  Future<void> _executeBulkAction(String action, {int? renewNum, String? renewUnit}) async {
+  Future<void> _executeBulkAction(String action, {String? presetDuration}) async {
     if (_selectedIds.isEmpty) return;
     try {
       await ApiService.bulkKeyAction(
         bulkAction: action,
         ids: _selectedIds.toList(),
-        renewNum: renewNum,
-        renewUnit: renewUnit,
+        presetDuration: presetDuration,
       );
       _refreshData();
     } catch (e) {
@@ -637,8 +636,7 @@ class _KeyTabState extends State<KeyTab> {
   }
 
   void _showBulkRenewDialog() {
-    int renewNum = 1;
-    String renewUnit = 'day';
+    String presetDuration = '1day';
 
     showDialog(
       context: context,
@@ -646,34 +644,24 @@ class _KeyTabState extends State<KeyTab> {
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF232330),
           title: Text('Bulk Renew (${_selectedIds.length} Keys)', style: const TextStyle(color: Colors.white, fontSize: 16)),
-          content: Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  initialValue: '1',
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(labelText: 'Duration', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
-                  onChanged: (val) => renewNum = int.tryParse(val) ?? 1,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: renewUnit,
-                  dropdownColor: const Color(0xFF232330),
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  items: const [
-                    DropdownMenuItem(value: 'hour', child: Text('Hour')),
-                    DropdownMenuItem(value: 'day', child: Text('Day')),
-                    DropdownMenuItem(value: 'week', child: Text('Week')),
-                    DropdownMenuItem(value: 'month', child: Text('Month')),
-                    DropdownMenuItem(value: 'year', child: Text('Year')),
-                  ],
-                  onChanged: (val) => setDialogState(() => renewUnit = val!),
-                ),
-              ),
+          content: DropdownButtonFormField<String>(
+            value: presetDuration,
+            dropdownColor: const Color(0xFF232330),
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            decoration: const InputDecoration(labelText: 'Duration Preset', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
+            items: const [
+              DropdownMenuItem(value: '1hour', child: Text('1 Hour')),
+              DropdownMenuItem(value: '3hour', child: Text('3 Hours')),
+              DropdownMenuItem(value: '6hour', child: Text('6 Hours')),
+              DropdownMenuItem(value: '12hour', child: Text('12 Hours')),
+              DropdownMenuItem(value: '1day', child: Text('1 Day')),
+              DropdownMenuItem(value: '3day', child: Text('3 Days')),
+              DropdownMenuItem(value: '1week', child: Text('1 Week')),
+              DropdownMenuItem(value: '2week', child: Text('2 Weeks')),
+              DropdownMenuItem(value: '1month', child: Text('1 Month')),
+              DropdownMenuItem(value: '1year', child: Text('1 Year')),
             ],
+            onChanged: (val) => setDialogState(() => presetDuration = val!),
           ),
           actions: [
             TextButton(
@@ -686,8 +674,8 @@ class _KeyTabState extends State<KeyTab> {
                 Navigator.pop(context);
                 _confirmAction(
                   'Confirm Bulk Renew',
-                  'Are you sure you want to extend duration by $renewNum $renewUnit for ${_selectedIds.length} selected keys?',
-                  () => _executeBulkAction('renew_selected', renewNum: renewNum, renewUnit: renewUnit),
+                  'Are you sure you want to extend duration by $presetDuration for ${_selectedIds.length} selected keys?',
+                  () => _executeBulkAction('renew_selected', presetDuration: presetDuration),
                 );
               },
               child: const Text('Renew All Selected'),
@@ -1024,8 +1012,7 @@ class _KeyTabState extends State<KeyTab> {
   }
 
   void _showRenewDialog(KeyItem item) {
-    int renewNum = 1;
-    String renewUnit = 'day';
+    String presetDuration = '1day';
 
     showDialog(
       context: context,
@@ -1033,34 +1020,24 @@ class _KeyTabState extends State<KeyTab> {
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF232330),
           title: const Text('Edit / Renew Key', style: TextStyle(color: Colors.white, fontSize: 16)),
-          content: Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  initialValue: '1',
-                  keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: const InputDecoration(labelText: 'Duration', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
-                  onChanged: (val) => renewNum = int.tryParse(val) ?? 1,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: renewUnit,
-                  dropdownColor: const Color(0xFF232330),
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                  items: const [
-                    DropdownMenuItem(value: 'hour', child: Text('Hour')),
-                    DropdownMenuItem(value: 'day', child: Text('Day')),
-                    DropdownMenuItem(value: 'week', child: Text('Week')),
-                    DropdownMenuItem(value: 'month', child: Text('Month')),
-                    DropdownMenuItem(value: 'year', child: Text('Year')),
-                  ],
-                  onChanged: (val) => setDialogState(() => renewUnit = val!),
-                ),
-              ),
+          content: DropdownButtonFormField<String>(
+            value: presetDuration,
+            dropdownColor: const Color(0xFF232330),
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            decoration: const InputDecoration(labelText: 'Duration Preset', labelStyle: TextStyle(color: Color(0xFF94A3B8))),
+            items: const [
+              DropdownMenuItem(value: '1hour', child: Text('1 Hour')),
+              DropdownMenuItem(value: '3hour', child: Text('3 Hours')),
+              DropdownMenuItem(value: '6hour', child: Text('6 Hours')),
+              DropdownMenuItem(value: '12hour', child: Text('12 Hours')),
+              DropdownMenuItem(value: '1day', child: Text('1 Day')),
+              DropdownMenuItem(value: '3day', child: Text('3 Days')),
+              DropdownMenuItem(value: '1week', child: Text('1 Week')),
+              DropdownMenuItem(value: '2week', child: Text('2 Weeks')),
+              DropdownMenuItem(value: '1month', child: Text('1 Month')),
+              DropdownMenuItem(value: '1year', child: Text('1 Year')),
             ],
+            onChanged: (val) => setDialogState(() => presetDuration = val!),
           ),
           actions: [
             TextButton(
@@ -1073,12 +1050,11 @@ class _KeyTabState extends State<KeyTab> {
                 Navigator.pop(context);
                 _confirmAction(
                   'Confirm Renew Key',
-                  'Are you sure you want to renew this key for $renewNum $renewUnit?',
+                  'Are you sure you want to renew this key for $presetDuration?',
                   () async {
                     await ApiService.renewKey(
                       keyId: item.id,
-                      renewNum: renewNum,
-                      renewUnit: renewUnit,
+                      presetDuration: presetDuration,
                     );
                     _refreshData();
                   },
