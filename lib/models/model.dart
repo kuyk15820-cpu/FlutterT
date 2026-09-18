@@ -1,7 +1,63 @@
 import 'dart:convert';
 
 // ==================================================================
-// 1. DASHBOARD STATS MODELS
+// 1. API RESPONSE & AUTH MODELS
+// ==================================================================
+class ApiResponse<T> {
+  final String status;
+  final String? message;
+  final T? data;
+
+  ApiResponse({
+    required this.status,
+    this.message,
+    this.data,
+  });
+
+  bool get isSuccess => status == 'success';
+
+  factory ApiResponse.fromJson(
+    Map<String, dynamic> json,
+    T Function(dynamic json)? fromJsonT,
+  ) {
+    return ApiResponse<T>(
+      status: json['status'] ?? 'error',
+      message: json['message'],
+      data: json['data'] != null && fromJsonT != null ? fromJsonT(json['data']) : null,
+    );
+  }
+}
+
+class AdminUser {
+  final int id;
+  final String username;
+  final String token;
+
+  AdminUser({
+    required this.id,
+    required this.username,
+    required this.token,
+  });
+
+  factory AdminUser.fromJson(Map<String, dynamic> json) {
+    return AdminUser(
+      id: int.parse((json['id'] ?? 0).toString()),
+      username: json['username'] ?? '',
+      token: json['token'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'username': username,
+      'token': token,
+    };
+  }
+}
+
+// ==================================================================
+// 2. DASHBOARD STATS MODELS
 // ==================================================================
 class DashboardStats {
   final int totalDevices;
@@ -15,9 +71,11 @@ class DashboardStats {
   });
 
   factory DashboardStats.fromJson(Map<String, dynamic> json) {
-    final data = json['data'] ?? {};
+    // รองรับทั้งแบบครอบด้วย data และไม่ครอบ
+    final data = json['data'] is Map<String, dynamic> ? json['data'] : json;
+    
     return DashboardStats(
-      totalDevices: data['devices']?['total'] ?? 0,
+      totalDevices: int.parse((data['devices']?['total'] ?? 0).toString()),
       packages: PackageStats.fromJson(data['packages'] ?? {}),
       keys: KeyStats.fromJson(data['keys'] ?? {}),
     );
@@ -39,10 +97,10 @@ class PackageStats {
 
   factory PackageStats.fromJson(Map<String, dynamic> json) {
     return PackageStats(
-      total: json['total'] ?? 0,
-      active: json['active'] ?? 0,
-      maintenance: json['maintenance'] ?? 0,
-      deleted: json['deleted'] ?? 0,
+      total: int.parse((json['total'] ?? 0).toString()),
+      active: int.parse((json['active'] ?? 0).toString()),
+      maintenance: int.parse((json['maintenance'] ?? 0).toString()),
+      deleted: int.parse((json['deleted'] ?? 0).toString()),
     );
   }
 }
@@ -64,17 +122,17 @@ class KeyStats {
 
   factory KeyStats.fromJson(Map<String, dynamic> json) {
     return KeyStats(
-      total: json['total'] ?? 0,
-      active: json['active'] ?? 0,
-      banned: json['banned'] ?? 0,
-      expired: json['expired'] ?? 0,
-      deleted: json['deleted'] ?? 0,
+      total: int.parse((json['total'] ?? 0).toString()),
+      active: int.parse((json['active'] ?? 0).toString()),
+      banned: int.parse((json['banned'] ?? 0).toString()),
+      expired: int.parse((json['expired'] ?? 0).toString()),
+      deleted: int.parse((json['deleted'] ?? 0).toString()),
     );
   }
 }
 
 // ==================================================================
-// 2. KEY ITEM MODEL
+// 3. KEY ITEM MODEL
 // ==================================================================
 class KeyItem {
   final int id;
@@ -82,7 +140,7 @@ class KeyItem {
   final int projectId;
   final String projectName;
   final String tokenCode;
-  final String type;
+  final String type; // dynamic, static, lifetime
   final int duration;
   final String? expireDate;
   final int maxDevices;
@@ -94,7 +152,7 @@ class KeyItem {
   final String? deletedAt;
   final List<String> devices;
 
-  // 🟢 เพิ่ม Field เกี่ยวกับเวลาตรงนี้
+  // 🟢 Field เวลา
   final String? createdAt;
   final String? firstUsedAt;
   final String? lastAccess;
@@ -122,39 +180,88 @@ class KeyItem {
   });
 
   factory KeyItem.fromJson(Map<String, dynamic> json) {
+    // ป้องกันกรณี devices มาเป็น String หรือ Null
+    List<String> parsedDevices = [];
+    if (json['bound_devices'] != null) {
+      if (json['bound_devices'] is List) {
+        parsedDevices = List<String>.from(json['bound_devices']);
+      } else if (json['bound_devices'] is String && (json['bound_devices'] as String).isNotEmpty) {
+        try {
+          parsedDevices = List<String>.from(jsonDecode(json['bound_devices']));
+        } catch (_) {}
+      }
+    } else if (json['devices'] != null && json['devices'] is List) {
+      parsedDevices = List<String>.from(json['devices']);
+    }
+
     return KeyItem(
-      id: int.parse(json['id'].toString()),
+      id: int.parse((json['id'] ?? 0).toString()),
       originalId: json['original_id'] != null 
           ? int.tryParse(json['original_id'].toString()) 
           : null,
       projectId: int.parse((json['project_id'] ?? 0).toString()),
-      projectName: json['pname'] ?? '',
+      projectName: json['pname'] ?? json['project_name'] ?? '',
       tokenCode: json['token_code'] ?? '',
       type: json['type'] ?? 'dynamic',
       duration: int.parse((json['duration'] ?? 0).toString()),
       expireDate: json['expire_date'],
       maxDevices: int.parse((json['max_devices'] ?? 1).toString()),
-      usedDevices: json['used_devices'] ?? 0,
-      isBanned: json['is_banned'].toString() == '1',
+      usedDevices: int.parse((json['used_devices'] ?? parsedDevices.length).toString()),
+      isBanned: json['is_banned'].toString() == '1' || json['is_banned'] == true,
       banExpire: json['ban_expire'],
       banReason: json['ban_reason'],
       reason: json['reason'],
       deletedAt: json['deleted_at'],
-      devices: List<String>.from(json['bound_devices'] ?? json['devices'] ?? []),
-      
-      // 🟢 ดึงค่าเวลาจาก JSON PHP
+      devices: parsedDevices,
       createdAt: json['created_at'],
       firstUsedAt: json['first_used_at'],
       lastAccess: json['last_access'],
     );
   }
 
-  // Getter สำหรับเช็กว่าคีย์นี้เป็น Pending หรือไม่
+  // Helper Methods เช็กสถานะคีย์
   bool get isPending => firstUsedAt == null || firstUsedAt!.isEmpty;
+  
+  bool get isLifetime => type == 'lifetime' || duration == -1;
+
+  bool get isExpired {
+    if (isLifetime) return false;
+    if (expireDate == null || expireDate!.isEmpty) return false;
+    try {
+      final expireDateTime = DateTime.parse(expireDate!);
+      return expireDateTime.isBefore(DateTime.now());
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'original_id': originalId,
+      'project_id': projectId,
+      'pname': projectName,
+      'token_code': tokenCode,
+      'type': type,
+      'duration': duration,
+      'expire_date': expireDate,
+      'max_devices': maxDevices,
+      'used_devices': usedDevices,
+      'is_banned': isBanned ? 1 : 0,
+      'ban_expire': banExpire,
+      'ban_reason': banReason,
+      'reason': reason,
+      'deleted_at': deletedAt,
+      'bound_devices': devices,
+      'created_at': createdAt,
+      'first_used_at': firstUsedAt,
+      'last_access': lastAccess,
+    };
+  }
 }
 
 // ==================================================================
-// 3. PACKAGE ITEM MODEL
+// 4. PACKAGE ITEM MODEL
 // ==================================================================
 class PackageItem {
   final int id;
@@ -177,14 +284,14 @@ class PackageItem {
 
   factory PackageItem.fromJson(Map<String, dynamic> json) {
     return PackageItem(
-      id: int.parse(json['id'].toString()),
+      id: int.parse((json['id'] ?? 0).toString()),
       originalId: json['original_id'] != null 
           ? int.tryParse(json['original_id'].toString()) 
           : null,
       name: json['name'] ?? '',
       projectToken: json['project_token'] ?? '',
       contactLink: json['contact_link'],
-      isMaintenance: json['is_maintenance'].toString() == '1',
+      isMaintenance: json['is_maintenance'].toString() == '1' || json['is_maintenance'] == true,
       deletedAt: json['deleted_at'],
     );
   }
