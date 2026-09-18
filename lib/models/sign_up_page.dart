@@ -87,7 +87,7 @@ class _SignUpPageState extends State<SignUpPage> {
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Icon(Icons.person_add_alt_1_rounded, size: 64, color: Colors.indigoAccent),
                   const SizedBox(height: 16),
