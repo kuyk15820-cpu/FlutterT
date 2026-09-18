@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 📌 1. เพิ่ม shared_preferences
 import '../services/api_service.dart';
+import 'sign_up_page.dart'; // 📌 2. Import หน้า SignUpPage
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -16,6 +18,14 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
 
+  // 📌 3. เคลียร์ Memory เมื่อปิดหน้า
+  @override
+  void dispose() {
+    _userController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -29,6 +39,12 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
+      // 📌 4. บันทึก Token และ ข้อมูลผู้ใช้ ลงเครื่อง
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', user.token);
+      await prefs.setInt('user_id', user.id);
+      await prefs.setString('username', user.username);
+
       // แสดง SnackBar สำเร็จ
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -37,7 +53,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
 
-      // 🚀 นำทางไปหน้า Dashboard
+      // 📌 5. นำทางไปหน้า Dashboard (ปลดคอมเมนต์และเปลี่ยนชื่อ Route/Page ตามโครงสร้างโปรเจกต์)
       // Navigator.pushReplacementNamed(context, '/dashboard');
 
     } catch (e) {
@@ -143,6 +159,30 @@ class _LoginPageState extends State<LoginPage> {
                     child: _isLoading
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                         : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 📌 6. เพิ่มปุ่มสลับไปหน้า Sign Up
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('ยังไม่มีบัญชี? ', style: TextStyle(color: Colors.white60)),
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const SignUpPage()),
+                          );
+                        },
+                        child: const Text(
+                          'Sign Up',
+                          style: TextStyle(
+                            color: Colors.indigoAccent,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
