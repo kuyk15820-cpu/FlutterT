@@ -112,17 +112,15 @@ class ApiService {
     });
   }
 
-  // ⏳ 4. ต่ออายุ Key เดี่ยว
+  // ⏳ 4. ต่ออายุ Key เดี่ยว (ปรับใช้ Preset Duration)
   static Future<bool> renewKey({
     required int keyId,
-    required int renewNum,
-    required String renewUnit, // 'hour', 'day', 'week', 'month', 'year'
+    required String presetDuration, // '1hour', '3hour', '6hour', '12hour', '1day', '3day', '1week', '2week', '1month', '1year'
   }) async {
     return await manageKey({
       'action': 'renew',
       'key_id': keyId,
-      'renew_num': renewNum,
-      'renew_unit': renewUnit,
+      'preset_duration': presetDuration,
     });
   }
 
@@ -149,19 +147,17 @@ class ApiService {
     });
   }
 
-  // ⚡ 8. จัดการแบบกลุ่ม (Bulk Actions - เพิ่มรองรับ Bulk Renew)
+  // ⚡ 8. จัดการแบบกลุ่ม (Bulk Actions - รองรับ Bulk Renew แบบ Preset Duration)
   static Future<bool> bulkKeyAction({
     required String bulkAction, // 'delete_selected', 'ban_selected', 'unban_selected', 'reset_selected_devices', 'purge_selected_history', 'renew_selected'
     required List<int> ids,
-    int? renewNum,
-    String? renewUnit,
+    String? presetDuration, // ส่งเมื่อ bulkAction เป็น 'renew_selected'
   }) async {
     return await manageKey({
       'action': 'bulk_action',
       'bulk_action': bulkAction,
       'ids': ids,
-      'renew_num': renewNum,
-      'renew_unit': renewUnit,
+      'preset_duration': presetDuration,
     });
   }
 
@@ -272,7 +268,7 @@ class ApiService {
   }) async {
     return await managePackage({
       'action': 'bulk_action',
-      'bulk_action': bulkAction,
+      'สbulk_action': bulkAction,
       'ids': ids,
     });
   }
