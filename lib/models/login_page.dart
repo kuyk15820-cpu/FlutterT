@@ -98,7 +98,7 @@ class _LoginPageState extends State<LoginPage> {
               key: _formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                crossAlignment: CrossAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Icon(Icons.lock_person_rounded, size: 64, color: Colors.indigoAccent),
                   const SizedBox(height: 16),
