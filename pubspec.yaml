@@ -32,7 +32,7 @@ dependencies:
   awesome_dialog: ^3.3.0
   cherry_toast: ^1.13.0
   delightful_toast: ^1.1.0
-  toastification: latest_version
+  toastification: ^0.0.2
   panara_dialogs: ^0.1.5
   flutter_slidable: ^4.0.3
   flutter_spinkit: ^5.2.2
