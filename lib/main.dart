@@ -1,14 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'models/model.dart';
 import 'services/api_service.dart';
 import 'models/dashboard_tab.dart';
 import 'models/key_tab.dart';
-import 'models/package_tab.dart'; // 📌 เพิ่ม Import PackageTab
+import 'models/package_tab.dart';
+import 'views/login_page.dart'; // 📌 Import หน้า Login (ปรับ Path ให้ตรงกับโฟลเดอร์ของคุณ)
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -28,8 +31,64 @@ class MyApp extends StatelessWidget {
           surface: Color(0xFF1F1D2B),
         ),
       ),
-      home: const MainNavigationScreen(),
+      // 📌 กำหนดหน้าแรกเป็น AuthCheckScreen เพื่อเช็กการเข้าสู่ระบบอัตโนมัติ
+      home: const AuthCheckScreen(),
     );
+  }
+}
+
+/// 📌 Widget ตรวจสอบสถานะการเข้าสู่ระบบ
+class AuthCheckScreen extends StatefulWidget {
+  const AuthCheckScreen({super.key});
+
+  @override
+  State<AuthCheckScreen> createState() => _AuthCheckScreenState();
+}
+
+class _AuthCheckScreenState extends State<AuthCheckScreen> {
+  bool _isLoading = true;
+  bool _isAuthenticated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token');
+
+    if (token != null && token.isNotEmpty) {
+      final isValid = await ApiService.checkAuthStatus(token);
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = isValid;
+          _isLoading = false;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = false;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF14131D),
+        body: Center(
+          child: CupertinoActivityIndicator(color: Color(0xFF6366F1)),
+        ),
+      );
+    }
+
+    return _isAuthenticated ? const MainNavigationScreen() : const LoginPage();
   }
 }
 
@@ -56,6 +115,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
+  // 📌 ฟังก์ชัน Logout และย้อนกลับไปหน้า Login
+  Future<void> _handleLogout() async {
+    await ApiService.logout();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
@@ -73,15 +145,26 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
           ],
         ),
-        trailing: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: _refreshData,
-          child: const Icon(CupertinoIcons.refresh, color: Color(0xFF94A3B8), size: 20),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: _refreshData,
+              child: const Icon(CupertinoIcons.refresh, color: Color(0xFF94A3B8), size: 20),
+            ),
+            const SizedBox(width: 12),
+            // 📌 เพิ่มปุ่ม Logout มุมขวาบน
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: _handleLogout,
+              child: const Icon(CupertinoIcons.square_arrow_right, color: Colors.redAccent, size: 20),
+            ),
+          ],
         ),
       ),
       child: Stack(
         children: [
-          // Content View ตาม Tab
           SafeArea(
             child: IndexedStack(
               index: _selectedIndex,
@@ -89,12 +172,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 DashboardTab(statsFuture: _statsFuture),
                 const KeyTab(),
                 const Center(child: Text('Device History', style: TextStyle(color: Colors.white))),
-                const PackageTab(), // 📌 เปลี่ยนจาก Placeholder เป็น PackageTab จริง
+                const PackageTab(),
               ],
             ),
           ),
 
-          // Floating Capsule Navigation Bar ด้านล่าง
+          // Floating Capsule Navigation Bar
           Positioned(
             left: 20,
             right: 20,
@@ -120,7 +203,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     final tabWidth = constraints.maxWidth / 4;
                     return Stack(
                       children: [
-                        // Sliding Pill Indicator
                         AnimatedPositioned(
                           duration: const Duration(milliseconds: 250),
                           curve: Curves.fastOutSlowIn,
@@ -135,8 +217,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                             ),
                           ),
                         ),
-
-                        // Navigation Buttons
                         Row(
                           children: [
                             _buildNavItem(0, FontAwesomeIcons.chartPie, 'Dashboard', tabWidth),
@@ -157,7 +237,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  // ปุ่ม Navigation Item
   Widget _buildNavItem(int index, dynamic icon, String label, double width) {
     final isActive = _selectedIndex == index;
     return CupertinoButton(
