@@ -17,11 +17,16 @@ class ApiService {
     };
   }
 
-  // Helper Header สำหรับ Request ทั่วไปที่ไม่ต้องแนบ Token (เช่น Login / Register)
+  // Helper Header สำหรับ Request ทั่วไปที่ไม่ต้องแนบ Token
   static Map<String, String> get _defaultHeaders => {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       };
+
+  // Helper เช็ก Response Status
+  static bool _isSuccessStatus(dynamic status) {
+    return status == true || status == 'success' || status == 'true' || status == 1;
+  }
 
   // ==================================================================
   // 1. AUTHENTICATION API
@@ -38,34 +43,29 @@ class ApiService {
       }),
     );
 
-    if (response.statusCode == 200) {
-      final jsonResponse = jsonDecode(response.body);
-      if (jsonResponse['status'] == true) {
-        final userData = jsonResponse['data'];
-        final user = AdminUser(
-          id: int.parse(userData['user_id'].toString()),
-          username: userData['username'] ?? '',
-          token: userData['session_token'] ?? '',
-        );
+    final jsonResponse = jsonDecode(response.body);
 
-        // 🟢 บันทึก Token ลง SharedPreferences ทันทีที่ Login สำเร็จ
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', user.token);
-        await prefs.setInt('user_id', user.id);
-        await prefs.setString('username', user.username);
+    if (response.statusCode == 200 && _isSuccessStatus(jsonResponse['status'])) {
+      final userData = jsonResponse['data'] ?? {};
+      final user = AdminUser.fromJson(userData);
 
-        return user;
-      } else {
-        throw Exception(jsonResponse['message'] ?? 'เข้าสู่ระบบไม่สำเร็จ');
-      }
+      // 🟢 บันทึก Session & Role ลง SharedPreferences ทันทีที่ Login สำเร็จ
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', user.token);
+      await prefs.setInt('user_id', user.id);
+      await prefs.setString('username', user.username);
+      await prefs.setString('email', user.email);
+      await prefs.setString('plan_type', user.planType);
+      await prefs.setString('role', user.role);
+
+      return user;
     } else {
-      final jsonResponse = jsonDecode(response.body);
-      throw Exception(jsonResponse['message'] ?? 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+      throw Exception(jsonResponse['message'] ?? 'เข้าสู่ระบบไม่สำเร็จ');
     }
   }
 
   /// สมัครสมาชิก (Register)
-  static Future<bool> register({
+  static Future<AdminUser?> register({
     required String username,
     required String email,
     required String password,
@@ -80,11 +80,23 @@ class ApiService {
       }),
     );
 
-    if (response.statusCode == 200) {
-      final jsonResponse = jsonDecode(response.body);
-      return jsonResponse['status'] == true;
+    final jsonResponse = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && _isSuccessStatus(jsonResponse['status'])) {
+      // 🟢 หากมี data และ session_token ส่งกลับมา ให้ทำการ Auto-Login ได้ทันที
+      if (jsonResponse['data'] != null && jsonResponse['data']['session_token'] != null) {
+        final user = AdminUser.fromJson(jsonResponse['data']);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', user.token);
+        await prefs.setInt('user_id', user.id);
+        await prefs.setString('username', user.username);
+        await prefs.setString('email', user.email);
+        await prefs.setString('plan_type', user.planType);
+        await prefs.setString('role', user.role);
+        return user;
+      }
+      return null;
     } else {
-      final jsonResponse = jsonDecode(response.body);
       throw Exception(jsonResponse['message'] ?? 'การลงทะเบียนล้มเหลว');
     }
   }
@@ -103,8 +115,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        // 🟢 เช็กได้ทั้ง is_authenticated หรือ status
-        return jsonResponse['is_authenticated'] == true || jsonResponse['status'] == true;
+        return jsonResponse['is_authenticated'] == true || _isSuccessStatus(jsonResponse['status']);
       }
       return false;
     } catch (e) {
@@ -119,9 +130,7 @@ class ApiService {
 
       // 🟢 เคลียร์ข้อมูล Session ในเครื่องออกทันที
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('auth_token');
-      await prefs.remove('user_id');
-      await prefs.remove('username');
+      await prefs.clear();
 
       final response = await http.post(
         Uri.parse('$baseUrl/logout.php'),
@@ -130,7 +139,7 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        return jsonResponse['status'] == true || jsonResponse['status'] == 'success';
+        return _isSuccessStatus(jsonResponse['status']);
       }
       return true;
     } catch (e) {
@@ -150,15 +159,14 @@ class ApiService {
       headers: headers,
     );
 
-    if (response.statusCode == 200) {
-      final jsonResponse = jsonDecode(response.body);
-      if (jsonResponse['status'] == 'success') {
-        return DashboardStats.fromJson(jsonResponse);
-      } else {
-        throw Exception(jsonResponse['message'] ?? 'Failed to load stats');
-      }
+    final jsonResponse = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && _isSuccessStatus(jsonResponse['status'])) {
+      return DashboardStats.fromJson(jsonResponse);
+    } else if (response.statusCode == 401) {
+      throw Exception('Unauthorized');
     } else {
-      throw Exception('Server error: ${response.statusCode}');
+      throw Exception(jsonResponse['message'] ?? 'Failed to load stats');
     }
   }
 
@@ -174,16 +182,13 @@ class ApiService {
       headers: headers,
     );
 
-    if (response.statusCode == 200) {
-      final jsonResponse = jsonDecode(response.body);
-      if (jsonResponse['status'] == 'success') {
-        final List list = jsonResponse['data'] ?? [];
-        return list.map((item) => KeyItem.fromJson(item)).toList();
-      } else {
-        throw Exception(jsonResponse['message'] ?? 'Failed to load keys');
-      }
+    final jsonResponse = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && _isSuccessStatus(jsonResponse['status'])) {
+      final List list = jsonResponse['data'] ?? [];
+      return list.map((item) => KeyItem.fromJson(item)).toList();
     } else {
-      throw Exception('Server error: ${response.statusCode}');
+      throw Exception(jsonResponse['message'] ?? 'Failed to load keys');
     }
   }
 
@@ -196,15 +201,15 @@ class ApiService {
       body: jsonEncode(bodyData),
     );
 
-    if (response.statusCode == 200) {
-      final jsonResponse = jsonDecode(response.body);
-      if (jsonResponse['status'] == 'success') {
-        return jsonResponse['data'] ?? true;
-      } else {
-        throw Exception(jsonResponse['message'] ?? 'Key action failed');
-      }
+    final jsonResponse = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && _isSuccessStatus(jsonResponse['status'])) {
+      return jsonResponse['data'] ?? true;
+    } else if (response.statusCode == 403) {
+      // 🔴 ติด Limit Quota รายแพ็กเกจ
+      throw Exception(jsonResponse['message'] ?? 'Quota limit exceeded');
     } else {
-      throw Exception('Server error: ${response.statusCode}');
+      throw Exception(jsonResponse['message'] ?? 'Key action failed');
     }
   }
 
@@ -333,16 +338,13 @@ class ApiService {
       headers: headers,
     );
 
-    if (response.statusCode == 200) {
-      final jsonResponse = jsonDecode(response.body);
-      if (jsonResponse['status'] == 'success') {
-        final List list = jsonResponse['data'] ?? [];
-        return list.map((item) => PackageItem.fromJson(item)).toList();
-      } else {
-        throw Exception(jsonResponse['message'] ?? 'Failed to load packages');
-      }
+    final jsonResponse = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && _isSuccessStatus(jsonResponse['status'])) {
+      final List list = jsonResponse['data'] ?? [];
+      return list.map((item) => PackageItem.fromJson(item)).toList();
     } else {
-      throw Exception('Server error: ${response.statusCode}');
+      throw Exception(jsonResponse['message'] ?? 'Failed to load packages');
     }
   }
 
@@ -355,15 +357,15 @@ class ApiService {
       body: jsonEncode(bodyData),
     );
 
-    if (response.statusCode == 200) {
-      final jsonResponse = jsonDecode(response.body);
-      if (jsonResponse['status'] == 'success') {
-        return true;
-      } else {
-        throw Exception(jsonResponse['message'] ?? 'Package action failed');
-      }
+    final jsonResponse = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && _isSuccessStatus(jsonResponse['status'])) {
+      return true;
+    } else if (response.statusCode == 403) {
+      // 🔴 ติด Limit Quota รายแพ็กเกจ (เช่น บัญชี Free สร้างได้ไม่เกิน 1 Package)
+      throw Exception(jsonResponse['message'] ?? 'Package quota limit exceeded');
     } else {
-      throw Exception('Server error: ${response.statusCode}');
+      throw Exception(jsonResponse['message'] ?? 'Package action failed');
     }
   }
 
