@@ -42,11 +42,19 @@ class ApiService {
       final jsonResponse = jsonDecode(response.body);
       if (jsonResponse['status'] == true) {
         final userData = jsonResponse['data'];
-        return AdminUser(
+        final user = AdminUser(
           id: int.parse(userData['user_id'].toString()),
           username: userData['username'] ?? '',
           token: userData['session_token'] ?? '',
         );
+
+        // 🟢 บันทึก Token ลง SharedPreferences ทันทีที่ Login สำเร็จ
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', user.token);
+        await prefs.setInt('user_id', user.id);
+        await prefs.setString('username', user.username);
+
+        return user;
       } else {
         throw Exception(jsonResponse['message'] ?? 'เข้าสู่ระบบไม่สำเร็จ');
       }
@@ -95,7 +103,8 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        return jsonResponse['is_authenticated'] == true;
+        // 🟢 เช็กได้ทั้ง is_authenticated หรือ status
+        return jsonResponse['is_authenticated'] == true || jsonResponse['status'] == true;
       }
       return false;
     } catch (e) {
@@ -107,6 +116,13 @@ class ApiService {
   static Future<bool> logout() async {
     try {
       final headers = await _getAuthHeaders();
+
+      // 🟢 เคลียร์ข้อมูล Session ในเครื่องออกทันที
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
+      await prefs.remove('user_id');
+      await prefs.remove('username');
+
       final response = await http.post(
         Uri.parse('$baseUrl/logout.php'),
         headers: headers,
@@ -114,9 +130,9 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final jsonResponse = jsonDecode(response.body);
-        return jsonResponse['status'] == true;
+        return jsonResponse['status'] == true || jsonResponse['status'] == 'success';
       }
-      return false;
+      return true;
     } catch (e) {
       return true; // ล้าง Session ฝั่งเครื่องแม้เรียก API ไม่สำเร็จ
     }
