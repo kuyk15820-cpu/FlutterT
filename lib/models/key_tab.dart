@@ -63,7 +63,7 @@ class _KeyTabState extends State<KeyTab> {
     });
   }
 
-  // 🟢 ฟังก์ชันคำนวณและแสดงผลระยะเวลาคงเหลืออย่างถูกต้อง (ชั่วโมง, วัน, สัปดาห์, เดือน, ปี)
+  // 🟢 ฟังก์ชันคำนวณและแสดงผลระยะเวลาคงเหลือ
   String _formatRemainingTime(KeyItem key) {
     if (key.type == 'lifetime' || key.duration == -1) {
       return '∞ Lifetime';
@@ -519,8 +519,12 @@ class _KeyTabState extends State<KeyTab> {
             icon: Icons.rotate_left,
             color: const Color(0xFF3B82F6),
             onTap: () => _confirmAction('Reset Device', 'Are you sure you want to reset device bound to this key?', () async {
-              await ApiService.resetDevice(item.id);
-              _refreshData();
+              try {
+                await ApiService.resetDevice(item.id);
+                _refreshData();
+              } catch (e) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
             }),
           ),
         ),
@@ -533,8 +537,12 @@ class _KeyTabState extends State<KeyTab> {
             onTap: () {
               if (item.isBanned) {
                 _confirmAction('Unban Key', 'Are you sure you want to unban this key?', () async {
-                  await ApiService.unbanKey(item.id);
-                  _refreshData();
+                  try {
+                    await ApiService.unbanKey(item.id);
+                    _refreshData();
+                  } catch (e) {
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  }
                 });
               } else {
                 _showBanDialog(item);
@@ -549,8 +557,12 @@ class _KeyTabState extends State<KeyTab> {
             icon: Icons.delete_outline,
             color: const Color(0xFFEF4444),
             onTap: () => _confirmAction('Delete Key', 'Are you sure you want to delete this key?', () async {
-              await ApiService.deleteKey(item.id);
-              _refreshData();
+              try {
+                await ApiService.deleteKey(item.id);
+                _refreshData();
+              } catch (e) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
             }),
           ),
         ),
@@ -725,8 +737,12 @@ class _KeyTabState extends State<KeyTab> {
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
             onPressed: () async {
               Navigator.pop(context);
-              await ApiService.clearAllKeys(targetTabAction);
-              _refreshData();
+              try {
+                await ApiService.clearAllKeys(targetTabAction);
+                _refreshData();
+              } catch (e) {
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
             },
             child: const Text('Confirm Clear All'),
           ),
@@ -923,18 +939,26 @@ class _KeyTabState extends State<KeyTab> {
               onPressed: selectedProject == null
                   ? null
                   : () async {
-                      bool success = await ApiService.createKey(
-                        projectId: selectedProject!,
-                        type: keyType,
-                        maxDevices: maxDevices,
-                        prefixType: prefixType,
-                        quantity: int.tryParse(quantityController.text) ?? 1,
-                        customPrefix: customPrefixController.text,
-                        staticDate: keyType == 'static' ? DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedStaticDate) : null,
-                        presetDuration: keyType == 'dynamic' ? presetDuration : null,
-                      );
-                      if (context.mounted) Navigator.pop(context);
-                      if (success) _refreshData();
+                      try {
+                        bool success = await ApiService.createKey(
+                          projectId: selectedProject!,
+                          type: keyType,
+                          maxDevices: maxDevices,
+                          prefixType: prefixType,
+                          quantity: int.tryParse(quantityController.text) ?? 1,
+                          customPrefix: customPrefixController.text,
+                          staticDate: keyType == 'static' ? DateFormat('yyyy-MM-dd HH:mm:ss').format(selectedStaticDate) : null,
+                          presetDuration: keyType == 'dynamic' ? presetDuration : null,
+                        );
+                        if (context.mounted) Navigator.pop(context);
+                        if (success) _refreshData();
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}')),
+                          );
+                        }
+                      }
                     },
               child: const Text('Create'),
             ),
@@ -994,14 +1018,22 @@ class _KeyTabState extends State<KeyTab> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
               onPressed: () async {
-                await ApiService.banKey(
-                  keyId: item.id,
-                  banType: banType,
-                  banHours: int.tryParse(hoursController.text) ?? 24,
-                  reason: reasonController.text,
-                );
-                if (context.mounted) Navigator.pop(context);
-                _refreshData();
+                try {
+                  await ApiService.banKey(
+                    keyId: item.id,
+                    banType: banType,
+                    banHours: int.tryParse(hoursController.text) ?? 24,
+                    reason: reasonController.text,
+                  );
+                  if (context.mounted) Navigator.pop(context);
+                  _refreshData();
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}')),
+                    );
+                  }
+                }
               },
               child: const Text('Confirm Ban'),
             ),
@@ -1052,11 +1084,19 @@ class _KeyTabState extends State<KeyTab> {
                   'Confirm Renew Key',
                   'Are you sure you want to renew this key for $presetDuration?',
                   () async {
-                    await ApiService.renewKey(
-                      keyId: item.id,
-                      presetDuration: presetDuration,
-                    );
-                    _refreshData();
+                    try {
+                      await ApiService.renewKey(
+                        keyId: item.id,
+                        presetDuration: presetDuration,
+                      );
+                      _refreshData();
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}')),
+                        );
+                      }
+                    }
                   },
                 );
               },
