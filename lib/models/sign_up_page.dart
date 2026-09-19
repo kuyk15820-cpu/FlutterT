@@ -42,7 +42,7 @@ class _SignUpPageState extends State<SignUpPage> {
 
       if (!mounted) return;
 
-      if (success) {
+        if (success != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('สมัครสมาชิกสำเร็จ! กรุณาลงชื่อเข้าใช้'),
