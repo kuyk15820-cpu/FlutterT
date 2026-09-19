@@ -459,7 +459,7 @@ class _PackageTabState extends State<PackageTab> {
             icon: item.isMaintenance ? Icons.check_circle_outline : Icons.build_outlined,
             color: item.isMaintenance ? const Color(0xFF22C55E) : const Color(0xFFEAB308),
             onTap: () async {
-              await ApiService.togglePackageMaintenance(item.id, item.isMaintenance ? 1 : 0);
+              await ApiService.togglePackageMaintenance(item.id, item.isMaintenance ? 0 : 1);
               _refreshData();
             },
           ),
