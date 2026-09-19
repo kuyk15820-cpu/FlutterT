@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class SignUpPage extends StatefulWidget {
-  const SignUpPage({Key? key}) : super(key: key);
+  const SignUpPage({super.key});
 
   @override
   State<SignUpPage> createState() => _SignUpPageState();
@@ -18,6 +18,15 @@ class _SignUpPageState extends State<SignUpPage> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
@@ -37,10 +46,9 @@ class _SignUpPageState extends State<SignUpPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('สมัครสมาชิกสำเร็จ! กรุณาลงชื่อเข้าใช้'),
-            backgroundColor: Colors.green,
+            backgroundColor: Color(0xFF22C55E),
           ),
         );
-        // สมัครเสร็จแล้วย้อนกลับไปหน้า Sign In
         Navigator.pop(context);
       }
     } catch (e) {
@@ -48,7 +56,7 @@ class _SignUpPageState extends State<SignUpPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: const Color(0xFFEF4444),
         ),
       );
     } finally {
@@ -59,7 +67,7 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Dark Slate
+      backgroundColor: const Color(0xFF16161E),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -72,12 +80,12 @@ class _SignUpPageState extends State<SignUpPage> {
             constraints: const BoxConstraints(maxWidth: 400),
             padding: const EdgeInsets.all(32.0),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B).withOpacity(0.8),
+              color: const Color(0xFF232330),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Colors.white10),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withOpacity(0.4),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 )
@@ -89,7 +97,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.person_add_alt_1_rounded, size: 64, color: Colors.indigoAccent),
+                  const Icon(Icons.person_add_alt_1_rounded, size: 64, color: Color(0xFF6366F1)),
                   const SizedBox(height: 16),
                   const Text(
                     'CREATE ACCOUNT',
@@ -109,10 +117,10 @@ class _SignUpPageState extends State<SignUpPage> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'Username',
-                      labelStyle: const TextStyle(color: Colors.white60),
-                      prefixIcon: const Icon(Icons.person_outline, color: Colors.indigoAccent),
+                      labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                      prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF6366F1)),
                       filled: true,
-                      fillColor: Colors.black26,
+                      fillColor: const Color(0xFF16161E),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
                     validator: (v) {
@@ -130,10 +138,10 @@ class _SignUpPageState extends State<SignUpPage> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'Email Address',
-                      labelStyle: const TextStyle(color: Colors.white60),
-                      prefixIcon: const Icon(Icons.email_outlined, color: Colors.indigoAccent),
+                      labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                      prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF6366F1)),
                       filled: true,
-                      fillColor: Colors.black26,
+                      fillColor: const Color(0xFF16161E),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
                     validator: (v) {
@@ -153,14 +161,14 @@ class _SignUpPageState extends State<SignUpPage> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      labelStyle: const TextStyle(color: Colors.white60),
-                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.indigoAccent),
+                      labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                      prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF6366F1)),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.white38),
+                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF64748B)),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                       filled: true,
-                      fillColor: Colors.black26,
+                      fillColor: const Color(0xFF16161E),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
                     validator: (v) {
@@ -178,14 +186,14 @@ class _SignUpPageState extends State<SignUpPage> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'Confirm Password',
-                      labelStyle: const TextStyle(color: Colors.white60),
-                      prefixIcon: const Icon(Icons.lock_reset_outlined, color: Colors.indigoAccent),
+                      labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                      prefixIcon: const Icon(Icons.lock_reset_outlined, color: Color(0xFF6366F1)),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility, color: Colors.white38),
+                        icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF64748B)),
                         onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                       ),
                       filled: true,
-                      fillColor: Colors.black26,
+                      fillColor: const Color(0xFF16161E),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
                     validator: (v) {
@@ -200,7 +208,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   ElevatedButton(
                     onPressed: _isLoading ? null : _handleRegister,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigoAccent,
+                      backgroundColor: const Color(0xFF6366F1),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -214,12 +222,12 @@ class _SignUpPageState extends State<SignUpPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('มีบัญชีอยู่แล้ว? ', style: TextStyle(color: Colors.white60)),
+                      const Text('มีบัญชีอยู่แล้ว? ', style: TextStyle(color: Color(0xFF94A3B8))),
                       GestureDetector(
                         onTap: () => Navigator.pop(context),
                         child: const Text(
                           'Sign In',
-                          style: TextStyle(color: Colors.indigoAccent, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold),
                         ),
                       ),
                     ],
