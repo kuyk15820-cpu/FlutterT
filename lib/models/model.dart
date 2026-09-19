@@ -4,7 +4,7 @@ import 'dart:convert';
 // 1. API RESPONSE & AUTH MODELS
 // ==================================================================
 class ApiResponse<T> {
-  final String status;
+  final bool status;
   final String? message;
   final T? data;
 
@@ -14,15 +14,15 @@ class ApiResponse<T> {
     this.data,
   });
 
-  bool get isSuccess => status == 'success';
+  bool get isSuccess => status == true;
 
   factory ApiResponse.fromJson(
     Map<String, dynamic> json,
     T Function(dynamic json)? fromJsonT,
   ) {
     return ApiResponse<T>(
-      status: json['status'] ?? 'error',
-      message: json['message'],
+      status: json['status'] == true,
+      message: json['message']?.toString(),
       data: json['data'] != null && fromJsonT != null ? fromJsonT(json['data']) : null,
     );
   }
@@ -31,19 +31,28 @@ class ApiResponse<T> {
 class AdminUser {
   final int id;
   final String username;
+  final String email;
+  final String planType; // 'free', 'pro', 'vip', 'admin'
+  final String role;     // 'user', 'admin'
   final String token;
 
   AdminUser({
     required this.id,
     required this.username,
+    required this.email,
+    required this.planType,
+    required this.role,
     required this.token,
   });
 
   factory AdminUser.fromJson(Map<String, dynamic> json) {
     return AdminUser(
-      id: int.parse((json['id'] ?? 0).toString()),
+      id: int.parse((json['id'] ?? json['user_id'] ?? 0).toString()),
       username: json['username'] ?? '',
-      token: json['token'] ?? '',
+      email: json['email'] ?? '',
+      planType: json['plan_type'] ?? 'free',
+      role: json['role'] ?? 'user',
+      token: json['session_token'] ?? json['token'] ?? '',
     );
   }
 
@@ -51,7 +60,10 @@ class AdminUser {
     return {
       'id': id,
       'username': username,
-      'token': token,
+      'email': email,
+      'plan_type': planType,
+      'role': role,
+      'session_token': token,
     };
   }
 }
@@ -71,7 +83,6 @@ class DashboardStats {
   });
 
   factory DashboardStats.fromJson(Map<String, dynamic> json) {
-    // รองรับทั้งแบบครอบด้วย data และไม่ครอบ
     final data = json['data'] is Map<String, dynamic> ? json['data'] : json;
     
     return DashboardStats(
@@ -152,7 +163,6 @@ class KeyItem {
   final String? deletedAt;
   final List<String> devices;
 
-  // 🟢 Field เวลา
   final String? createdAt;
   final String? firstUsedAt;
   final String? lastAccess;
@@ -180,7 +190,6 @@ class KeyItem {
   });
 
   factory KeyItem.fromJson(Map<String, dynamic> json) {
-    // ป้องกันกรณี devices มาเป็น String หรือ Null
     List<String> parsedDevices = [];
     if (json['bound_devices'] != null) {
       if (json['bound_devices'] is List) {
@@ -219,7 +228,6 @@ class KeyItem {
     );
   }
 
-  // Helper Methods เช็กสถานะคีย์
   bool get isPending => firstUsedAt == null || firstUsedAt!.isEmpty;
   
   bool get isLifetime => type == 'lifetime' || duration == -1;
