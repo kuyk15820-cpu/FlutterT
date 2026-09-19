@@ -5,7 +5,7 @@ import '../main.dart'; // 📌 Import main.dart เพื่อนำทาง�
 import 'sign_up_page.dart';
 
 class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+  const LoginPage({super.key});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -49,7 +49,7 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('ยินดีต้อนรับ ${user.username}'),
-          backgroundColor: Colors.green,
+          backgroundColor: const Color(0xFF22C55E),
         ),
       );
 
@@ -64,7 +64,7 @@ class _LoginPageState extends State<LoginPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.redAccent,
+          backgroundColor: const Color(0xFFEF4444),
         ),
       );
     } finally {
@@ -75,7 +75,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A), // Dark Slate
+      backgroundColor: const Color(0xFF16161E),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -83,12 +83,12 @@ class _LoginPageState extends State<LoginPage> {
             constraints: const BoxConstraints(maxWidth: 400),
             padding: const EdgeInsets.all(32.0),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E293B).withOpacity(0.8),
+              color: const Color(0xFF232330),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: Colors.white10),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withOpacity(0.4),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 )
@@ -100,7 +100,7 @@ class _LoginPageState extends State<LoginPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.lock_person_rounded, size: 64, color: Colors.indigoAccent),
+                  const Icon(Icons.lock_person_rounded, size: 64, color: Color(0xFF6366F1)),
                   const SizedBox(height: 16),
                   const Text(
                     'SIGN IN',
@@ -120,10 +120,10 @@ class _LoginPageState extends State<LoginPage> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'Username or Email',
-                      labelStyle: const TextStyle(color: Colors.white60),
-                      prefixIcon: const Icon(Icons.person_outline, color: Colors.indigoAccent),
+                      labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                      prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF6366F1)),
                       filled: true,
-                      fillColor: Colors.black26,
+                      fillColor: const Color(0xFF16161E),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -140,14 +140,14 @@ class _LoginPageState extends State<LoginPage> {
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      labelStyle: const TextStyle(color: Colors.white60),
-                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.indigoAccent),
+                      labelStyle: const TextStyle(color: Color(0xFF94A3B8)),
+                      prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF6366F1)),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: Colors.white38),
+                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility, color: const Color(0xFF64748B)),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                       filled: true,
-                      fillColor: Colors.black26,
+                      fillColor: const Color(0xFF16161E),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -161,7 +161,7 @@ class _LoginPageState extends State<LoginPage> {
                   ElevatedButton(
                     onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.indigoAccent,
+                      backgroundColor: const Color(0xFF6366F1),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -182,7 +182,7 @@ class _LoginPageState extends State<LoginPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('ยังไม่มีบัญชี? ', style: TextStyle(color: Colors.white60)),
+                      const Text('ยังไม่มีบัญชี? ', style: TextStyle(color: Color(0xFF94A3B8))),
                       GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -193,7 +193,7 @@ class _LoginPageState extends State<LoginPage> {
                         child: const Text(
                           'Sign Up',
                           style: TextStyle(
-                            color: Colors.indigoAccent,
+                            color: Color(0xFF6366F1),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
