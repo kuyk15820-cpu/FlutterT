@@ -15,6 +15,7 @@ dependencies:
   font_awesome_flutter: ^11.0.0
   intl: ^0.20.2 # 🟢 เพิ่มแพ็กเกจจัดการ DateFormat และภาษา
   shared_preferences: ^2.5.3 # 🟢 เพิ่มสำหรับจัดการ Local Storage / Auth Token
+  file_picker: ^10.3.8 # 🟢 เพิ่มสำหรับเลือกไฟล์ .ipa ในเครื่อง
 
   # 🟢 UI / FX & Animations
   lottie: ^3.5.1
