@@ -2,7 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-import 'models/app_version_admin_tab.dart'; // 📌 Import หน้า Admin Tab UI
+import 'models/app_version_admin_tab.dart'; // 📌 Import หน้า Admin
+import 'models/patch_management_tab.dart'; // 📌 Import หน้า Patch Management
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,14 +65,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             child: IndexedStack(
               index: _selectedIndex,
               children: const [
-                // 📌 เหลือเฉพาะ Admin และ Devices
+                // 📌 ปรับเปลี่ยนเป็นหน้า Admin และ Patches
                 AppVersionAdminScreen(),
-                Center(child: Text('Device History', style: TextStyle(color: Colors.white))),
+                PatchManagementScreen(),
               ],
             ),
           ),
 
-          // Floating Capsule Navigation Bar (ปรับสำหรับ 2 Tabs)
+          // Floating Capsule Navigation Bar (ปรับสำหรับ Admin & Patches)
           Positioned(
             left: 20,
             right: 20,
@@ -94,7 +95,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 ),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    // คำนวณความกว้างตามจำนวน Tab ทั้งหมด (2 Tabs)
                     final tabWidth = constraints.maxWidth / 2;
                     return Stack(
                       children: [
@@ -115,7 +115,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                         Row(
                           children: [
                             _buildNavItem(0, FontAwesomeIcons.gear, 'Admin', tabWidth),
-                            _buildNavItem(1, FontAwesomeIcons.mobile, 'Devices', tabWidth),
+                            _buildNavItem(1, FontAwesomeIcons.cubes, 'Patches', tabWidth),
                           ],
                         ),
                       ],
