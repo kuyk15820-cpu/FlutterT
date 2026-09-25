@@ -2,9 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
-import 'models/key_tab.dart';
-import 'models/package_tab.dart';
-import 'app_version_admin_tab.dart'; // 📌 Import หน้า Admin Tab UI ที่สร้างไว้
+import 'model/app_version_admin_tab.dart'; // 📌 Import หน้า Admin Tab UI
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +25,6 @@ class MyApp extends StatelessWidget {
           surface: Color(0xFF1F1D2B),
         ),
       ),
-      // 📌 เข้าสู่หน้าหลักโดยตรง ไม่ผ่าน AuthCheckScreen
       home: const MainNavigationScreen(),
     );
   }
@@ -67,16 +64,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             child: IndexedStack(
               index: _selectedIndex,
               children: const [
-                // 📌 เปลี่ยน Tab แรกเป็น AppVersionAdminScreen แทน DashboardTab
+                // 📌 เหลือเฉพาะ Admin และ Devices
                 AppVersionAdminScreen(),
-                KeyTab(),
                 Center(child: Text('Device History', style: TextStyle(color: Colors.white))),
-                PackageTab(),
               ],
             ),
           ),
 
-          // Floating Capsule Navigation Bar
+          // Floating Capsule Navigation Bar (ปรับสำหรับ 2 Tabs)
           Positioned(
             left: 20,
             right: 20,
@@ -99,7 +94,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 ),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    final tabWidth = constraints.maxWidth / 4;
+                    // คำนวณความกว้างตามจำนวน Tab ทั้งหมด (2 Tabs)
+                    final tabWidth = constraints.maxWidth / 2;
                     return Stack(
                       children: [
                         AnimatedPositioned(
@@ -118,11 +114,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                         ),
                         Row(
                           children: [
-                            // 📌 เปลี่ยนชื่อและไอคอนของ Tab แรกเป็น Admin
                             _buildNavItem(0, FontAwesomeIcons.gear, 'Admin', tabWidth),
-                            _buildNavItem(1, FontAwesomeIcons.key, 'Keys', tabWidth),
-                            _buildNavItem(2, FontAwesomeIcons.mobile, 'Devices', tabWidth),
-                            _buildNavItem(3, FontAwesomeIcons.box, 'Packages', tabWidth),
+                            _buildNavItem(1, FontAwesomeIcons.mobile, 'Devices', tabWidth),
                           ],
                         ),
                       ],
