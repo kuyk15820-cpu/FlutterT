@@ -150,7 +150,7 @@ class _AppVersionAdminScreenState extends State<AppVersionAdminScreen> {
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 1. Current Status Card
                     _buildCurrentStatusCard(),
@@ -254,7 +254,7 @@ class _AppVersionAdminScreenState extends State<AppVersionAdminScreen> {
         border: Border.all(color: Colors.white12),
       ),
       child: Column(
-        crossAxisAlignment: CrossAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -292,7 +292,7 @@ class _AppVersionAdminScreenState extends State<AppVersionAdminScreen> {
     String? Function(String?)? validator,
   }) {
     return Column(
-      crossAxisAlignment: CrossAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
         if (sublabel != null)
@@ -329,7 +329,7 @@ class _AppVersionAdminScreenState extends State<AppVersionAdminScreen> {
 
   Widget _buildFilePickerSection() {
     return Column(
-      crossAxisAlignment: CrossAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text('อัปโหลดไฟล์แอป (.ipa)', style: TextStyle(color: Colors.white70, fontSize: 14)),
         const Text('* ระบบจะสร้าง URL ดาวน์โหลดและบันทึกลง JSON ให้อัตโนมัติ',
