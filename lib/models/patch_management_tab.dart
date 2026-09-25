@@ -190,13 +190,13 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
 
     showDialog(
       context: context,
-      builder: (ctx) => StatefulWidget(
+      builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: Text(patch == null ? 'เพิ่ม Patch ใหม่' : 'แก้ไข Patch'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextField(
                   controller: idController,
