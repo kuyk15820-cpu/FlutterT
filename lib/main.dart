@@ -1,14 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import 'models/model.dart';
-import 'services/api_service.dart';
-import 'models/dashboard_tab.dart';
 import 'models/key_tab.dart';
 import 'models/package_tab.dart';
-import 'models/login_page.dart'; // 📌 Import หน้า Login (ปรับ Path ให้ตรงกับโฟลเดอร์ของคุณ)
+import 'app_version_admin_tab.dart'; // 📌 Import หน้า Admin Tab UI ที่สร้างไว้
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,7 +17,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'FX-Adm',
+      title: 'F1X3R-adm',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF14131D),
@@ -31,64 +27,9 @@ class MyApp extends StatelessWidget {
           surface: Color(0xFF1F1D2B),
         ),
       ),
-      // 📌 กำหนดหน้าแรกเป็น AuthCheckScreen เพื่อเช็กการเข้าสู่ระบบอัตโนมัติ
-      home: const AuthCheckScreen(),
+      // 📌 เข้าสู่หน้าหลักโดยตรง ไม่ผ่าน AuthCheckScreen
+      home: const MainNavigationScreen(),
     );
-  }
-}
-
-/// 📌 Widget ตรวจสอบสถานะการเข้าสู่ระบบ
-class AuthCheckScreen extends StatefulWidget {
-  const AuthCheckScreen({super.key});
-
-  @override
-  State<AuthCheckScreen> createState() => _AuthCheckScreenState();
-}
-
-class _AuthCheckScreenState extends State<AuthCheckScreen> {
-  bool _isLoading = true;
-  bool _isAuthenticated = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkAuth();
-  }
-
-  Future<void> _checkAuth() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
-
-    if (token != null && token.isNotEmpty) {
-      final isValid = await ApiService.checkAuthStatus(token);
-      if (mounted) {
-        setState(() {
-          _isAuthenticated = isValid;
-          _isLoading = false;
-        });
-      }
-    } else {
-      if (mounted) {
-        setState(() {
-          _isAuthenticated = false;
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF14131D),
-        body: Center(
-          child: CupertinoActivityIndicator(color: Color(0xFF6366F1)),
-        ),
-      );
-    }
-
-    return _isAuthenticated ? const MainNavigationScreen() : const LoginPage();
   }
 }
 
@@ -101,40 +42,14 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
-  late Future<DashboardStats> _statsFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _statsFuture = ApiService.fetchDashboardStats();
-  }
-
-  void _refreshData() {
-    setState(() {
-      _statsFuture = ApiService.fetchDashboardStats();
-    });
-  }
-
-  // 📌 ฟังก์ชัน Logout และย้อนกลับไปหน้า Login
-  Future<void> _handleLogout() async {
-    await ApiService.logout();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      navigationBar: CupertinoNavigationBar(
-        backgroundColor: const Color(0xFF1F1D2B),
-        border: const Border(bottom: BorderSide(color: Color(0xFF2D2B3A))),
-        leading: const Row(
+      navigationBar: const CupertinoNavigationBar(
+        backgroundColor: Color(0xFF1F1D2B),
+        border: Border(bottom: BorderSide(color: Color(0xFF2D2B3A))),
+        leading: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             FaIcon(FontAwesomeIcons.shieldHalved, color: Color(0xFF6366F1), size: 18),
@@ -145,34 +60,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
           ],
         ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: _refreshData,
-              child: const Icon(CupertinoIcons.refresh, color: Color(0xFF94A3B8), size: 20),
-            ),
-            const SizedBox(width: 12),
-            // 📌 เพิ่มปุ่ม Logout มุมขวาบน
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: _handleLogout,
-              child: const Icon(CupertinoIcons.square_arrow_right, color: Colors.redAccent, size: 20),
-            ),
-          ],
-        ),
       ),
       child: Stack(
         children: [
           SafeArea(
             child: IndexedStack(
               index: _selectedIndex,
-              children: [
-                DashboardTab(statsFuture: _statsFuture),
-                const KeyTab(),
-                const Center(child: Text('Device History', style: TextStyle(color: Colors.white))),
-                const PackageTab(),
+              children: const [
+                // 📌 เปลี่ยน Tab แรกเป็น AppVersionAdminScreen แทน DashboardTab
+                AppVersionAdminScreen(),
+                KeyTab(),
+                Center(child: Text('Device History', style: TextStyle(color: Colors.white))),
+                PackageTab(),
               ],
             ),
           ),
@@ -219,7 +118,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                         ),
                         Row(
                           children: [
-                            _buildNavItem(0, FontAwesomeIcons.chartPie, 'Dashboard', tabWidth),
+                            // 📌 เปลี่ยนชื่อและไอคอนของ Tab แรกเป็น Admin
+                            _buildNavItem(0, FontAwesomeIcons.gear, 'Admin', tabWidth),
                             _buildNavItem(1, FontAwesomeIcons.key, 'Keys', tabWidth),
                             _buildNavItem(2, FontAwesomeIcons.mobile, 'Devices', tabWidth),
                             _buildNavItem(3, FontAwesomeIcons.box, 'Packages', tabWidth),
