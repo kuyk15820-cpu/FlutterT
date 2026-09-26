@@ -508,7 +508,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: Colors.white10),
       ),
-      child: FWTabBar(
+      child: FwTabBar(
         controller: _tabController,
         borderRadius: BorderRadius.circular(8),
         indicatorColor: Colors.blueAccent.withOpacity(0.3),
