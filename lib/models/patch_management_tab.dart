@@ -15,6 +15,9 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  // Search Toggle State
+  bool _showSearch = false;
+
   // Games State
   List<TargetGame> _gamesList = [];
   bool _isLoadingGames = false;
@@ -29,6 +32,11 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        setState(() {});
+      }
+    });
     _loadAllData();
   }
 
@@ -441,36 +449,17 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
     );
   }
 
-  // Capsule หมวดหมู่ / Tag
-  Widget _buildCategoryCapsule(String label, {Color color = Colors.blueAccent}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  // Widget แสดงข้อมูลแบบจัดชิดขวา
+  // Widget แสดงข้อมูลแบบจัดชิดขวา (Text ปกติ สมดุล)
   Widget _buildDetailRowRight(String label, Widget valueWidget) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             label,
-            style: const TextStyle(color: Colors.white54, fontSize: 13),
+            style: const TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.w500),
           ),
           Flexible(
             child: Align(
@@ -483,15 +472,60 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
     );
   }
 
+  // Action Buttons แบบ Capsule ทรงแคปซูล
+  Widget _buildCapsuleActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return OutlinedButton.icon(
+      icon: Icon(icon, size: 14, color: color),
+      label: Text(
+        label,
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+      ),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: color,
+        side: BorderSide(color: color.withOpacity(0.6), width: 1),
+        shape: const StadiumBorder(), // รูปทรงแคปซูล
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      onPressed: onPressed,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
       appBar: AppBar(
-        title: const Text('Patch & Game Manager', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Patch & Game Manager', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: const Color(0xFF1E1E1E),
         elevation: 0,
         actions: [
+          IconButton(
+            icon: Icon(_showSearch ? Icons.search_off : Icons.search, color: Colors.white70),
+            tooltip: _showSearch ? 'ซ่อนการค้นหา' : 'แสดงการค้นหา',
+            onPressed: () {
+              setState(() {
+                _showSearch = !_showSearch;
+              });
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline, color: Colors.blueAccent),
+            tooltip: _tabController.index == 0 ? 'เพิ่ม Target Game' : 'เพิ่ม Patch ใหม่',
+            onPressed: () {
+              if (_tabController.index == 0) {
+                _showGameDialog();
+              } else {
+                _showPatchDialog();
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.power_settings_new, color: Colors.greenAccent),
             tooltip: 'เปิดทั้งหมด',
@@ -515,19 +549,38 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
             },
           ),
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: Colors.white70),
             onPressed: _loadAllData,
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.blueAccent,
-          labelColor: Colors.blueAccent,
-          unselectedLabelColor: Colors.white54,
-          tabs: const [
-            Tab(icon: Icon(Icons.sports_esports), text: 'Target Games'),
-            Tab(icon: Icon(Icons.extension), text: 'Patches Catalog'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFF121212),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.blueAccent.withOpacity(0.25),
+                  border: Border.all(color: Colors.blueAccent.withOpacity(0.5)),
+                ),
+                labelColor: Colors.blueAccent,
+                unselectedLabelColor: Colors.white54,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                tabs: const [
+                  Tab(icon: Icon(Icons.sports_esports, size: 18), text: 'Target Games'),
+                  Tab(icon: Icon(Icons.extension, size: 18), text: 'Patches Catalog'),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
       body: TabBarView(
@@ -536,21 +589,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
           _buildGamesTab(),
           _buildPatchesTab(),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.blueAccent,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: Text(
-          _tabController.index == 0 ? 'เพิ่ม Target Game' : 'เพิ่ม Patch ใหม่',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        onPressed: () {
-          if (_tabController.index == 0) {
-            _showGameDialog();
-          } else {
-            _showPatchDialog();
-          }
-        },
       ),
     );
   }
@@ -571,46 +609,47 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
 
     return Column(
       children: [
-        // Search Bar
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-          child: TextField(
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            onChanged: (val) => setState(() => _gameSearchQuery = val),
-            decoration: InputDecoration(
-              hintText: 'ค้นหา Target Game หรือ Bundle ID...',
-              hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-              prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
-              filled: true,
-              fillColor: const Color(0xFF1E1E1E),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.white10),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.white10),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.blueAccent),
+        // Search Bar (เปิด/ปิด ได้จาก AppBar)
+        if (_showSearch)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 2),
+            child: TextField(
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              onChanged: (val) => setState(() => _gameSearchQuery = val),
+              decoration: InputDecoration(
+                hintText: 'ค้นหา Target Game หรือ Bundle ID...',
+                hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
+                filled: true,
+                fillColor: const Color(0xFF1E1E1E),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white10),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white10),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blueAccent),
+                ),
               ),
             ),
           ),
-        ),
 
-        // List View with Expandable Cards
+        // List View with Main Card Table & Sub Card
         Expanded(
           child: filteredGames.isEmpty
               ? const Center(child: Text('ไม่พบข้อมูล Target Game', style: TextStyle(color: Colors.white38)))
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
                   itemCount: filteredGames.length,
                   itemBuilder: (context, index) {
                     final game = filteredGames[index];
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
+                      margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E1E1E),
                         borderRadius: BorderRadius.circular(14),
@@ -619,6 +658,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                       child: Theme(
                         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                         child: ExpansionTile(
+                          tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                           iconColor: Colors.blueAccent,
                           collapsedIconColor: Colors.white54,
                           leading: CircleAvatar(
@@ -650,71 +690,67 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                           ),
                           children: [
                             Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Container(
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF161616),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.white.withOpacity(0.05)),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildDetailRowRight(
-                                      'ชื่อเกม:',
-                                      Text(
-                                        game.name,
-                                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                                        textAlign: TextAlign.end,
-                                      ),
+                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                              child: Column(
+                                children: [
+                                  // Card ย่อยแสดงข้อมูล
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF141414),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.white.withOpacity(0.05)),
                                     ),
-                                    _buildDetailRowRight(
-                                      'Bundle ID:',
-                                      Text(
-                                        game.bundleID,
-                                        style: const TextStyle(color: Colors.white70, fontSize: 13),
-                                        textAlign: TextAlign.end,
-                                      ),
-                                    ),
-                                    _buildDetailRowRight(
-                                      'สถานะ:',
-                                      _buildStatusCapsule(
-                                        game.active,
-                                        onTap: () => _toggleGame(game.bundleID),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        OutlinedButton.icon(
-                                          icon: const Icon(Icons.edit, size: 15),
-                                          label: const Text('แก้ไข', style: TextStyle(fontSize: 12)),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: Colors.blueAccent,
-                                            side: const BorderSide(color: Colors.blueAccent),
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        _buildDetailRowRight(
+                                          'ชื่อเกม:',
+                                          Text(
+                                            game.name,
+                                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                                            textAlign: TextAlign.end,
                                           ),
-                                          onPressed: () => _showGameDialog(game: game),
                                         ),
-                                        const SizedBox(width: 8),
-                                        OutlinedButton.icon(
-                                          icon: const Icon(Icons.delete, size: 15),
-                                          label: const Text('ลบ', style: TextStyle(fontSize: 12)),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: Colors.redAccent,
-                                            side: const BorderSide(color: Colors.redAccent),
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        _buildDetailRowRight(
+                                          'Bundle ID:',
+                                          Text(
+                                            game.bundleID,
+                                            style: const TextStyle(color: Colors.white70, fontSize: 13, fontFamily: 'monospace'),
+                                            textAlign: TextAlign.end,
                                           ),
-                                          onPressed: () => _deleteGame(game.bundleID),
+                                        ),
+                                        _buildDetailRowRight(
+                                          'สถานะการทำงาน:',
+                                          _buildStatusCapsule(
+                                            game.active,
+                                            onTap: () => _toggleGame(game.bundleID),
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  // Action Buttons แบบ Capsule อยู่นอก Card ย่อย
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      _buildCapsuleActionButton(
+                                        icon: Icons.edit_outlined,
+                                        label: 'แก้ไข',
+                                        color: Colors.blueAccent,
+                                        onPressed: () => _showGameDialog(game: game),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      _buildCapsuleActionButton(
+                                        icon: Icons.delete_outline,
+                                        label: 'ลบ',
+                                        color: Colors.redAccent,
+                                        onPressed: () => _deleteGame(game.bundleID),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -746,46 +782,47 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
 
     return Column(
       children: [
-        // Search Bar
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
-          child: TextField(
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-            onChanged: (val) => setState(() => _patchSearchQuery = val),
-            decoration: InputDecoration(
-              hintText: 'ค้นหา Patch ID, ชื่อ, หมวดหมู่ หรือ Bundle ID...',
-              hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-              prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
-              filled: true,
-              fillColor: const Color(0xFF1E1E1E),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.white10),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.white10),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: Colors.blueAccent),
+        // Search Bar (เปิด/ปิด ได้จาก AppBar)
+        if (_showSearch)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 2),
+            child: TextField(
+              style: const TextStyle(color: Colors.white, fontSize: 14),
+              onChanged: (val) => setState(() => _patchSearchQuery = val),
+              decoration: InputDecoration(
+                hintText: 'ค้นหา Patch ID, ชื่อ, หมวดหมู่ หรือ Bundle ID...',
+                hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
+                filled: true,
+                fillColor: const Color(0xFF1E1E1E),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white10),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.white10),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Colors.blueAccent),
+                ),
               ),
             ),
           ),
-        ),
 
-        // List View with Expandable Cards
+        // List View with Main Card Table & Sub Card
         Expanded(
           child: filteredPatches.isEmpty
               ? const Center(child: Text('ไม่พบข้อมูล Patch ในระบบ', style: TextStyle(color: Colors.white38)))
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
                   itemCount: filteredPatches.length,
                   itemBuilder: (context, index) {
                     final patch = filteredPatches[index];
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
+                      margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E1E1E),
                         borderRadius: BorderRadius.circular(14),
@@ -794,6 +831,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                       child: Theme(
                         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                         child: ExpansionTile(
+                          tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                           iconColor: Colors.blueAccent,
                           collapsedIconColor: Colors.white54,
                           leading: CircleAvatar(
@@ -829,88 +867,96 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                           ),
                           children: [
                             Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Container(
-                                padding: const EdgeInsets.all(14),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF161616),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.white.withOpacity(0.05)),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildDetailRowRight(
-                                      'Patch ID:',
-                                      Text(
-                                        patch.id,
-                                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                                        textAlign: TextAlign.end,
-                                      ),
+                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                              child: Column(
+                                children: [
+                                  // Card ย่อยแสดงข้อมูล (ใช้ Text ปกติ ID Patch Text)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF141414),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: Colors.white.withOpacity(0.05)),
                                     ),
-                                    _buildDetailRowRight(
-                                      'ชื่อ Patch:',
-                                      Text(
-                                        patch.title,
-                                        style: const TextStyle(color: Colors.white70, fontSize: 13),
-                                        textAlign: TextAlign.end,
-                                      ),
-                                    ),
-                                    _buildDetailRowRight(
-                                      'หมวดหมู่:',
-                                      _buildCategoryCapsule(
-                                        patch.category.isEmpty ? 'General' : patch.category,
-                                        color: Colors.purpleAccent,
-                                      ),
-                                    ),
-                                    _buildDetailRowRight(
-                                      'Target Bundle:',
-                                      patch.bundleID.isEmpty
-                                          ? _buildCategoryCapsule('All Games', color: Colors.orangeAccent)
-                                          : Text(
-                                              patch.bundleID,
-                                              style: const TextStyle(color: Colors.white70, fontSize: 13),
-                                              textAlign: TextAlign.end,
-                                            ),
-                                    ),
-                                    _buildDetailRowRight(
-                                      'สถานะ:',
-                                      _buildStatusCapsule(
-                                        patch.active,
-                                        onTap: () => _togglePatch(patch.id),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        OutlinedButton.icon(
-                                          icon: const Icon(Icons.edit, size: 15),
-                                          label: const Text('แก้ไข Patch', style: TextStyle(fontSize: 12)),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: Colors.blueAccent,
-                                            side: const BorderSide(color: Colors.blueAccent),
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        _buildDetailRowRight(
+                                          'Patch ID:',
+                                          Text(
+                                            patch.id,
+                                            style: const TextStyle(
+                                              color: Colors.lightBlueAccent,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              fontFamily: 'monospace',
+                                            ),
+                                            textAlign: TextAlign.end,
                                           ),
-                                          onPressed: () => _showPatchDialog(patch: patch),
                                         ),
-                                        const SizedBox(width: 8),
-                                        OutlinedButton.icon(
-                                          icon: const Icon(Icons.delete, size: 15),
-                                          label: const Text('ลบ Patch', style: TextStyle(fontSize: 12)),
-                                          style: OutlinedButton.styleFrom(
-                                            foregroundColor: Colors.redAccent,
-                                            side: const BorderSide(color: Colors.redAccent),
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        _buildDetailRowRight(
+                                          'ชื่อ Patch:',
+                                          Text(
+                                            patch.title,
+                                            style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                            textAlign: TextAlign.end,
                                           ),
-                                          onPressed: () => _deletePatch(patch.id),
+                                        ),
+                                        _buildDetailRowRight(
+                                          'หมวดหมู่:',
+                                          Text(
+                                            patch.category.isEmpty ? 'General' : patch.category,
+                                            style: const TextStyle(
+                                              color: Colors.purpleAccent,
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            textAlign: TextAlign.end,
+                                          ),
+                                        ),
+                                        _buildDetailRowRight(
+                                          'Target Bundle:',
+                                          Text(
+                                            patch.bundleID.isEmpty ? 'All Games (ทุกเกม)' : patch.bundleID,
+                                            style: TextStyle(
+                                              color: patch.bundleID.isEmpty ? Colors.orangeAccent : Colors.white70,
+                                              fontSize: 13,
+                                              fontFamily: patch.bundleID.isEmpty ? null : 'monospace',
+                                            ),
+                                            textAlign: TextAlign.end,
+                                          ),
+                                        ),
+                                        _buildDetailRowRight(
+                                          'สถานะ:',
+                                          _buildStatusCapsule(
+                                            patch.active,
+                                            onTap: () => _togglePatch(patch.id),
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  // Action Buttons แบบ Capsule อยู่นอก Card ย่อย
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      _buildCapsuleActionButton(
+                                        icon: Icons.edit_outlined,
+                                        label: 'แก้ไข Patch',
+                                        color: Colors.blueAccent,
+                                        onPressed: () => _showPatchDialog(patch: patch),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      _buildCapsuleActionButton(
+                                        icon: Icons.delete_outline,
+                                        label: 'ลบ Patch',
+                                        color: Colors.redAccent,
+                                        onPressed: () => _deletePatch(patch.id),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
                           ],
