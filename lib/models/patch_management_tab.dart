@@ -18,10 +18,12 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
   // Games State
   List<TargetGame> _gamesList = [];
   bool _isLoadingGames = false;
+  String _gameSearchQuery = '';
 
   // Patches State
   List<PatchItem> _patchesList = [];
   bool _isLoadingPatches = false;
+  String _patchSearchQuery = '';
 
   @override
   void initState() {
@@ -93,7 +95,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: Colors.white10),
         ),
         title: Text(
@@ -208,7 +210,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: const Color(0xFF1E1E1E),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
             side: const BorderSide(color: Colors.white10),
           ),
           title: Text(
@@ -394,6 +396,93 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
     );
   }
 
+  // Capsule สถานะ (ACTIVE / DISABLED)
+  Widget _buildStatusCapsule(bool isActive, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: isActive
+              ? Colors.greenAccent.withOpacity(0.15)
+              : Colors.redAccent.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isActive
+                ? Colors.greenAccent.withOpacity(0.4)
+                : Colors.redAccent.withOpacity(0.4),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isActive ? Colors.greenAccent : Colors.redAccent,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              isActive ? 'ACTIVE' : 'DISABLED',
+              style: TextStyle(
+                color: isActive ? Colors.greenAccent : Colors.redAccent,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Capsule หมวดหมู่ / Tag
+  Widget _buildCategoryCapsule(String label, {Color color = Colors.blueAccent}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  // Widget แสดงข้อมูลแบบจัดชิดขวา
+  Widget _buildDetailRowRight(String label, Widget valueWidget) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white54, fontSize: 13),
+          ),
+          Flexible(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: valueWidget,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -402,6 +491,34 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
         title: const Text('Patch & Game Manager', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF1E1E1E),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.power_settings_new, color: Colors.greenAccent),
+            tooltip: 'เปิดทั้งหมด',
+            onPressed: () {
+              if (_tabController.index == 0) {
+                _toggleAllGames(true);
+              } else {
+                _toggleAllPatches(true);
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.power_settings_new, color: Colors.redAccent),
+            tooltip: 'ปิดทั้งหมด',
+            onPressed: () {
+              if (_tabController.index == 0) {
+                _toggleAllGames(false);
+              } else {
+                _toggleAllPatches(false);
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadAllData,
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.blueAccent,
@@ -412,12 +529,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
             Tab(icon: Icon(Icons.extension), text: 'Patches Catalog'),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadAllData,
-          ),
-        ],
       ),
       body: TabBarView(
         controller: _tabController,
@@ -425,6 +536,21 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
           _buildGamesTab(),
           _buildPatchesTab(),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.blueAccent,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: Text(
+          _tabController.index == 0 ? 'เพิ่ม Target Game' : 'เพิ่ม Patch ใหม่',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        onPressed: () {
+          if (_tabController.index == 0) {
+            _showGameDialog();
+          } else {
+            _showPatchDialog();
+          }
+        },
       ),
     );
   }
@@ -437,67 +563,57 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
       return const Center(child: CircularProgressIndicator());
     }
 
+    final filteredGames = _gamesList.where((g) {
+      final query = _gameSearchQuery.toLowerCase();
+      return g.name.toLowerCase().contains(query) ||
+          g.bundleID.toLowerCase().contains(query);
+    }).toList();
+
     return Column(
       children: [
-        // Action Bar
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: const BoxDecoration(
-            color: Color(0xFF1E1E1E),
-            border: Border(bottom: BorderSide(color: Colors.white10)),
-          ),
-          child: Row(
-            children: [
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('เพิ่มเกมใหม่'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () => _showGameDialog(),
+        // Search Bar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+          child: TextField(
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            onChanged: (val) => setState(() => _gameSearchQuery = val),
+            decoration: InputDecoration(
+              hintText: 'ค้นหา Target Game หรือ Bundle ID...',
+              hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+              prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
+              filled: true,
+              fillColor: const Color(0xFF1E1E1E),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.white10),
               ),
-              const Spacer(),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.power_settings_new, size: 16),
-                label: const Text('เปิดหมด', style: TextStyle(fontSize: 12)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.greenAccent,
-                  side: const BorderSide(color: Colors.greenAccent),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () => _toggleAllGames(true),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.white10),
               ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.power_off, size: 16),
-                label: const Text('ปิดหมด', style: TextStyle(fontSize: 12)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.redAccent,
-                  side: const BorderSide(color: Colors.redAccent),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () => _toggleAllGames(false),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.blueAccent),
               ),
-            ],
+            ),
           ),
         ),
 
         // List View with Expandable Cards
         Expanded(
-          child: _gamesList.isEmpty
-              ? const Center(child: Text('ไม่มีข้อมูล Target Game', style: TextStyle(color: Colors.white38)))
+          child: filteredGames.isEmpty
+              ? const Center(child: Text('ไม่พบข้อมูล Target Game', style: TextStyle(color: Colors.white38)))
               : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _gamesList.length,
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
+                  itemCount: filteredGames.length,
                   itemBuilder: (context, index) {
-                    final game = _gamesList[index];
+                    final game = filteredGames[index];
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E1E1E),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: Colors.white10),
                       ),
                       child: Theme(
@@ -511,7 +627,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                 ? Colors.green.withOpacity(0.2)
                                 : Colors.grey.withOpacity(0.2),
                             child: Icon(
-                              game.active ? Icons.check : Icons.block,
+                              game.active ? Icons.sports_esports : Icons.block,
                               color: game.active ? Colors.greenAccent : Colors.grey,
                               size: 18,
                             ),
@@ -528,57 +644,77 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                             game.bundleID,
                             style: const TextStyle(color: Colors.white38, fontSize: 12),
                           ),
-                          trailing: Switch(
-                            value: game.active,
-                            activeColor: Colors.blueAccent,
-                            onChanged: (_) => _toggleGame(game.bundleID),
+                          trailing: _buildStatusCapsule(
+                            game.active,
+                            onTap: () => _toggleGame(game.bundleID),
                           ),
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF161616),
-                                borderRadius: BorderRadius.only(
-                                  bottomLeft: Radius.circular(10),
-                                  bottomRight: Radius.circular(10),
+                            Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF161616),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white.withOpacity(0.05)),
                                 ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildDetailRow('ชื่อเกม:', game.name),
-                                  const SizedBox(height: 6),
-                                  _buildDetailRow('Bundle ID:', game.bundleID),
-                                  const SizedBox(height: 6),
-                                  _buildDetailRow('สถานะ:', game.active ? 'เปิดใช้งาน (Active)' : 'ปิดใช้งาน (Disabled)'),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      OutlinedButton.icon(
-                                        icon: const Icon(Icons.edit, size: 16),
-                                        label: const Text('แก้ไข'),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: Colors.blueAccent,
-                                          side: const BorderSide(color: Colors.blueAccent),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                        ),
-                                        onPressed: () => _showGameDialog(game: game),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildDetailRowRight(
+                                      'ชื่อเกม:',
+                                      Text(
+                                        game.name,
+                                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                                        textAlign: TextAlign.end,
                                       ),
-                                      const SizedBox(width: 8),
-                                      OutlinedButton.icon(
-                                        icon: const Icon(Icons.delete, size: 16),
-                                        label: const Text('ลบ'),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: Colors.redAccent,
-                                          side: const BorderSide(color: Colors.redAccent),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                        ),
-                                        onPressed: () => _deleteGame(game.bundleID),
+                                    ),
+                                    _buildDetailRowRight(
+                                      'Bundle ID:',
+                                      Text(
+                                        game.bundleID,
+                                        style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                        textAlign: TextAlign.end,
                                       ),
-                                    ],
-                                  ),
-                                ],
+                                    ),
+                                    _buildDetailRowRight(
+                                      'สถานะ:',
+                                      _buildStatusCapsule(
+                                        game.active,
+                                        onTap: () => _toggleGame(game.bundleID),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        OutlinedButton.icon(
+                                          icon: const Icon(Icons.edit, size: 15),
+                                          label: const Text('แก้ไข', style: TextStyle(fontSize: 12)),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: Colors.blueAccent,
+                                            side: const BorderSide(color: Colors.blueAccent),
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          ),
+                                          onPressed: () => _showGameDialog(game: game),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        OutlinedButton.icon(
+                                          icon: const Icon(Icons.delete, size: 15),
+                                          label: const Text('ลบ', style: TextStyle(fontSize: 12)),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: Colors.redAccent,
+                                            side: const BorderSide(color: Colors.redAccent),
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          ),
+                                          onPressed: () => _deleteGame(game.bundleID),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -600,67 +736,59 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
       return const Center(child: CircularProgressIndicator());
     }
 
+    final filteredPatches = _patchesList.where((p) {
+      final query = _patchSearchQuery.toLowerCase();
+      return p.title.toLowerCase().contains(query) ||
+          p.id.toLowerCase().contains(query) ||
+          p.category.toLowerCase().contains(query) ||
+          p.bundleID.toLowerCase().contains(query);
+    }).toList();
+
     return Column(
       children: [
-        // Action Bar
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: const BoxDecoration(
-            color: Color(0xFF1E1E1E),
-            border: Border(bottom: BorderSide(color: Colors.white10)),
-          ),
-          child: Row(
-            children: [
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('เพิ่ม Patch ใหม่'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueAccent,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () => _showPatchDialog(),
+        // Search Bar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+          child: TextField(
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            onChanged: (val) => setState(() => _patchSearchQuery = val),
+            decoration: InputDecoration(
+              hintText: 'ค้นหา Patch ID, ชื่อ, หมวดหมู่ หรือ Bundle ID...',
+              hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+              prefixIcon: const Icon(Icons.search, color: Colors.white54, size: 20),
+              filled: true,
+              fillColor: const Color(0xFF1E1E1E),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.white10),
               ),
-              const Spacer(),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.power_settings_new, size: 16),
-                label: const Text('เปิดหมด', style: TextStyle(fontSize: 12)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.greenAccent,
-                  side: const BorderSide(color: Colors.greenAccent),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () => _toggleAllPatches(true),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.white10),
               ),
-              const SizedBox(width: 8),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.power_off, size: 16),
-                label: const Text('ปิดหมด', style: TextStyle(fontSize: 12)),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.redAccent,
-                  side: const BorderSide(color: Colors.redAccent),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                onPressed: () => _toggleAllPatches(false),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.blueAccent),
               ),
-            ],
+            ),
           ),
         ),
 
         // List View with Expandable Cards
         Expanded(
-          child: _patchesList.isEmpty
-              ? const Center(child: Text('ไม่มีข้อมูล Patch ในระบบ', style: TextStyle(color: Colors.white38)))
+          child: filteredPatches.isEmpty
+              ? const Center(child: Text('ไม่พบข้อมูล Patch ในระบบ', style: TextStyle(color: Colors.white38)))
               : ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: _patchesList.length,
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 80),
+                  itemCount: filteredPatches.length,
                   itemBuilder: (context, index) {
-                    final patch = _patchesList[index];
+                    final patch = filteredPatches[index];
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E1E1E),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: Colors.white10),
                       ),
                       child: Theme(
@@ -695,61 +823,94 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                             'ID: ${patch.id}',
                             style: const TextStyle(color: Colors.white38, fontSize: 12),
                           ),
-                          trailing: Switch(
-                            value: patch.active,
-                            activeColor: Colors.blueAccent,
-                            onChanged: (_) => _togglePatch(patch.id),
+                          trailing: _buildStatusCapsule(
+                            patch.active,
+                            onTap: () => _togglePatch(patch.id),
                           ),
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF161616),
-                                borderRadius: BorderRadius.only(
-                                  bottomLeft: Radius.circular(10),
-                                  bottomRight: Radius.circular(10),
+                            Padding(
+                              padding: const EdgeInsets.all(10),
+                              child: Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF161616),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.white.withOpacity(0.05)),
                                 ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildDetailRow('Patch ID:', patch.id),
-                                  const SizedBox(height: 6),
-                                  _buildDetailRow('ชื่อ Patch:', patch.title),
-                                  const SizedBox(height: 6),
-                                  _buildDetailRow('หมวดหมู่:', patch.category.isEmpty ? '-' : patch.category),
-                                  const SizedBox(height: 6),
-                                  _buildDetailRow('Target Bundle:', patch.bundleID.isEmpty ? 'รองรับทุกเกม (All Games)' : patch.bundleID),
-                                  const SizedBox(height: 6),
-                                  _buildDetailRow('สถานะ:', patch.active ? 'เปิดใช้งาน (Active)' : 'ปิดใช้งาน (Disabled)'),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      OutlinedButton.icon(
-                                        icon: const Icon(Icons.edit, size: 16),
-                                        label: const Text('แก้ไข Patch'),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: Colors.blueAccent,
-                                          side: const BorderSide(color: Colors.blueAccent),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                        ),
-                                        onPressed: () => _showPatchDialog(patch: patch),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildDetailRowRight(
+                                      'Patch ID:',
+                                      Text(
+                                        patch.id,
+                                        style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                                        textAlign: TextAlign.end,
                                       ),
-                                      const SizedBox(width: 8),
-                                      OutlinedButton.icon(
-                                        icon: const Icon(Icons.delete, size: 16),
-                                        label: const Text('ลบ Patch'),
-                                        style: OutlinedButton.styleFrom(
-                                          foregroundColor: Colors.redAccent,
-                                          side: const BorderSide(color: Colors.redAccent),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                                        ),
-                                        onPressed: () => _deletePatch(patch.id),
+                                    ),
+                                    _buildDetailRowRight(
+                                      'ชื่อ Patch:',
+                                      Text(
+                                        patch.title,
+                                        style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                        textAlign: TextAlign.end,
                                       ),
-                                    ],
-                                  ),
-                                ],
+                                    ),
+                                    _buildDetailRowRight(
+                                      'หมวดหมู่:',
+                                      _buildCategoryCapsule(
+                                        patch.category.isEmpty ? 'General' : patch.category,
+                                        color: Colors.purpleAccent,
+                                      ),
+                                    ),
+                                    _buildDetailRowRight(
+                                      'Target Bundle:',
+                                      patch.bundleID.isEmpty
+                                          ? _buildCategoryCapsule('All Games', color: Colors.orangeAccent)
+                                          : Text(
+                                              patch.bundleID,
+                                              style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                              textAlign: TextAlign.end,
+                                            ),
+                                    ),
+                                    _buildDetailRowRight(
+                                      'สถานะ:',
+                                      _buildStatusCapsule(
+                                        patch.active,
+                                        onTap: () => _togglePatch(patch.id),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        OutlinedButton.icon(
+                                          icon: const Icon(Icons.edit, size: 15),
+                                          label: const Text('แก้ไข Patch', style: TextStyle(fontSize: 12)),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: Colors.blueAccent,
+                                            side: const BorderSide(color: Colors.blueAccent),
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          ),
+                                          onPressed: () => _showPatchDialog(patch: patch),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        OutlinedButton.icon(
+                                          icon: const Icon(Icons.delete, size: 15),
+                                          label: const Text('ลบ Patch', style: TextStyle(fontSize: 12)),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: Colors.redAccent,
+                                            side: const BorderSide(color: Colors.redAccent),
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          ),
+                                          onPressed: () => _deletePatch(patch.id),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -758,27 +919,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                     );
                   },
                 ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 110,
-          child: Text(
-            label,
-            style: const TextStyle(color: Colors.white54, fontSize: 13),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(color: Colors.white, fontSize: 13),
-          ),
         ),
       ],
     );
