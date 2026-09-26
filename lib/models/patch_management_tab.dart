@@ -509,21 +509,12 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
         border: Border.all(color: Colors.white10),
       ),
       child: TabBarWidget(
-        controller: _tabController,
-        borderRadius: BorderRadius.circular(8),
-        indicatorColor: Colors.blueAccent.withOpacity(0.3),
-        labelColor: Colors.white,
-        unselectedLabelColor: Colors.white54,
-        tabs: const [
-          Tab(
-            icon: Icon(Icons.sports_esports, size: 16),
-            text: 'Target Games',
-          ),
-          Tab(
-            icon: Icon(Icons.extension, size: 16),
-            text: 'Patches Catalog',
-          ),
-        ],
+        firstTab: 'Target Games',
+        secondTab: 'Patches Catalog',
+        onTabChanged: (int index) {
+          // ซิงค์ index กับ TabController ที่คุณมีอยู่
+          _tabController.animateTo(index);
+        },
       ),
     );
   }
