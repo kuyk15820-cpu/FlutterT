@@ -190,9 +190,9 @@ class ApiService {
     }
   }
 
-  /// เพิ่ม Patch ใหม่ (พร้อมไฟล์ .c4)
+    /// เพิ่ม Patch ใหม่ ( Server จะเจน ID ตัวเลขให้อัตโนมัติ)
   static Future<bool> addPatch({
-    required String id,
+    String? id, // 🟢 ปรับเป็น optional (หรือใส่หรือไม่ใส่ก็ได้)
     required String title,
     required String category,
     required String bundleID,
@@ -204,7 +204,9 @@ class ApiService {
     );
 
     request.fields['action'] = 'add';
-    request.fields['id'] = id;
+    if (id != null && id.isNotEmpty) {
+      request.fields['id'] = id;
+    }
     request.fields['title'] = title;
     request.fields['category'] = category;
     request.fields['bundleID'] = bundleID;
