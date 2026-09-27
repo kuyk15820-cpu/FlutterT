@@ -1,12 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:timeago/timeago.dart' as timeago; // 🟢 1. Import timeago
 
-import 'models/app_version_admin_tab.dart'; // 📌 Import หน้า Admin
-import 'models/patch_management_tab.dart'; // 📌 Import หน้า Patch Management
+import 'models/app_version_admin_tab.dart'; 
+import 'models/patch_management_tab.dart'; 
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 🟢 2. ลงทะเบียนภาษาไทยให้ timeago
+  timeago.setLocaleMessages('th', timeago.ThMessages());
+  
   runApp(const MyApp());
 }
 
@@ -65,14 +70,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             child: IndexedStack(
               index: _selectedIndex,
               children: const [
-                // 📌 ปรับเปลี่ยนเป็นหน้า Admin และ Patches
                 AppVersionAdminScreen(),
                 PatchManagementScreen(),
               ],
             ),
           ),
 
-          // Floating Capsule Navigation Bar (ปรับสำหรับ Admin & Patches)
+          // Floating Capsule Navigation Bar
           Positioned(
             left: 20,
             right: 20,
