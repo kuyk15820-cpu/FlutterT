@@ -99,19 +99,34 @@ class ApiService {
     }
   }
 
-  /// เพิ่ม หรือแก้ไข Target Game
+    /// เพิ่ม หรือแก้ไข Target Game (รองรับทั้ง Icon URL และ ไฟล์อัปโหลด)
   static Future<bool> addOrUpdateGame({
     required String gameName,
     required String bundleID,
+    String? iconUrl,
+    File? iconFile,
   }) async {
-    final response = await http.post(
+    var request = http.MultipartRequest(
+      'POST',
       Uri.parse('$patchesBaseUrl/save3.php?api=1'),
-      body: {
-        'action': 'add_game',
-        'game_name': gameName,
-        'bundle_id': bundleID,
-      },
     );
+
+    request.fields['action'] = 'add_game';
+    request.fields['game_name'] = gameName;
+    request.fields['bundle_id'] = bundleID;
+    
+    if (iconUrl != null && iconUrl.isNotEmpty) {
+      request.fields['icon_url'] = iconUrl;
+    }
+
+    if (iconFile != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath('icon_file', iconFile.path),
+      );
+    }
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
 
     final jsonResponse = jsonDecode(response.body);
 
