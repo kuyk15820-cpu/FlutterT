@@ -25,6 +25,7 @@ dependencies:
   flutter_animate: ^4.5.2
   auto_size_text: ^3.0.0
   animated_text_kit: ^4.3.0
+  skeletons: ^0.0.3 # 🟢 เพิ่มสำหรับทำ Loading Skeleton UI
 
   # 🟢 Navigation & Layouts
   curved_navigation_bar: ^1.0.6
