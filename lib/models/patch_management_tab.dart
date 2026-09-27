@@ -111,11 +111,15 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
     }
   }
 
-  // 🟢 แสดง Bottom Sheet สำหรับ เพิ่ม/แก้ไข Target Game
+  // 🟢 แสดง Bottom Sheet สำหรับ เพิ่ม/แก้ไข Target Game (เพิ่มอัปโหลด Icon / Icon URL)
   void _showGameBottomSheet({TargetGame? game}) {
     final formKey = GlobalKey<FormState>();
     final nameController = TextEditingController(text: game?.name ?? '');
     final bundleController = TextEditingController(text: game?.bundleID ?? '');
+    final iconUrlController = TextEditingController(text: game?.icon ?? '');
+
+    File? selectedIconFile;
+    String? selectedIconFileName;
     bool isSaving = false;
 
     showModalBottomSheet(
@@ -177,6 +181,77 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                         validator: (v) =>
                             v == null || v.trim().isEmpty ? 'กรุณากรอก Bundle ID' : null,
                       ),
+                      const SizedBox(height: 12),
+                      _buildFormTextField(
+                        controller: iconUrlController,
+                        label: 'Icon URL (ลิงก์รูปภาพไอคอน)',
+                        hint: 'https://example.com/icon.png (ถ้ามี)',
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 🟢 File Picker สำหรับ ไอคอนเกม
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'หรืออัปโหลดไฟล์ไอคอน (PNG, JPG)',
+                            style: TextStyle(color: Colors.white70, fontSize: 14),
+                          ),
+                          const SizedBox(height: 6),
+                          InkWell(
+                            onTap: () async {
+                              FilePickerResult? result = await FilePicker.platform.pickFiles(
+                                type: FileType.image,
+                              );
+                              if (result != null && result.files.single.path != null) {
+                                setSheetState(() {
+                                  selectedIconFile = File(result.files.single.path!);
+                                  selectedIconFileName = result.files.single.name;
+                                });
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E1E1E),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.white10),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.image_outlined, color: Colors.blueAccent),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      selectedIconFileName ?? 'เลือกรูปภาพไอคอน...',
+                                      style: TextStyle(
+                                        color: selectedIconFileName != null
+                                            ? Colors.white
+                                            : Colors.white38,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blueAccent.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text(
+                                      'Browse',
+                                      style: TextStyle(
+                                          color: Colors.blueAccent, fontSize: 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 24),
                       SizedBox(
                         width: double.infinity,
@@ -197,6 +272,8 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                     await ApiService.addOrUpdateGame(
                                       gameName: nameController.text.trim(),
                                       bundleID: bundleController.text.trim(),
+                                      iconUrl: iconUrlController.text.trim(),
+                                      iconFile: selectedIconFile,
                                     );
                                     if (mounted) Navigator.pop(ctx);
                                     _showSnackBar('บันทึกข้อมูลเกมสำเร็จ');
@@ -278,10 +355,9 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
     }
   }
 
-  // 🟢 แสดง Bottom Sheet สำหรับ เพิ่ม/แก้ไข Patch
+  // 🟢 แสดง Bottom Sheet สำหรับ เพิ่ม/แก้ไข Patch (เอาช่องกรอก Patch ID ออก)
   void _showPatchBottomSheet({PatchItem? patch}) {
     final formKey = GlobalKey<FormState>();
-    final idController = TextEditingController(text: patch?.id ?? '');
     final titleController = TextEditingController(text: patch?.title ?? '');
     final categoryController =
         TextEditingController(text: patch?.category ?? 'General');
@@ -335,15 +411,8 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildFormTextField(
-                        controller: idController,
-                        label: 'Patch ID',
-                        hint: 'เช่น anti_recoil_v1',
-                        enabled: patch == null,
-                        validator: (v) =>
-                            v == null || v.trim().isEmpty ? 'กรุณากรอก Patch ID' : null,
-                      ),
-                      const SizedBox(height: 12),
+                      
+                      // 🔴 เอาการกรอก Patch ID ออก
                       _buildFormTextField(
                         controller: titleController,
                         label: 'ชื่อ Patch (Title)',
@@ -365,19 +434,21 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                       ),
                       const SizedBox(height: 12),
 
-                      // 🟢 File Picker Section รูปแบบ Card สไตล์ admin_tab
+                      // 🟢 File Picker Section รองรับเฉพาะ .c4
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'อัปโหลดไฟล์ Patch (.c4)',
+                            'อัปโหลดไฟล์ Patch (.c4 เท่านั้น)',
                             style: TextStyle(color: Colors.white70, fontSize: 14),
                           ),
                           const SizedBox(height: 6),
                           InkWell(
                             onTap: () async {
-                              FilePickerResult? result =
-                                  await FilePicker.platform.pickFiles();
+                              FilePickerResult? result = await FilePicker.platform.pickFiles(
+                                type: FileType.custom,
+                                allowedExtensions: ['c4'], // 🟢 กำหนดให้เลือกได้เฉพาะ .c4
+                              );
                               if (result != null &&
                                   result.files.single.path != null) {
                                 setSheetState(() {
@@ -447,7 +518,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                   try {
                                     if (patch == null) {
                                       await ApiService.addPatch(
-                                        id: idController.text.trim(),
                                         title: titleController.text.trim(),
                                         category: categoryController.text.trim(),
                                         bundleID: bundleController.text.trim(),
@@ -456,7 +526,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                       _showSnackBar('เพิ่ม Patch สำเร็จ');
                                     } else {
                                       await ApiService.updatePatch(
-                                        id: idController.text.trim(),
+                                        id: patch.id, // ใช้ ID เดิมในการอัปเดต
                                         title: titleController.text.trim(),
                                         category: categoryController.text.trim(),
                                         bundleID: bundleController.text.trim(),
@@ -876,7 +946,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
               });
             },
           ),
-          // 🟢 ปุ่ม Filters บน AppBar
           IconButton(
             icon: const Icon(Icons.tune_rounded, color: Colors.white),
             tooltip: 'ตัวกรอง (Filters)',
@@ -1020,20 +1089,31 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                               horizontal: 12, vertical: 0),
                           iconColor: Colors.white,
                           collapsedIconColor: Colors.white54,
-                          leading: CircleAvatar(
-                            radius: 15,
-                            backgroundColor: game.active
-                                ? Colors.green.withOpacity(0.2)
-                                : Colors.grey.withOpacity(0.2),
-                            child: Text(
-                              '#${index + 1}',
-                              style: TextStyle(
-                                color:
-                                    game.active ? Colors.greenAccent : Colors.grey,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                          // 🟢 แสดง Icon ใน Card ของ Target Game
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: game.icon != null && game.icon!.isNotEmpty
+                                ? Image.network(
+                                    game.icon!,
+                                    width: 36,
+                                    height: 36,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (ctx, err, stack) =>
+                                        Container(
+                                      width: 36,
+                                      height: 36,
+                                      color: Colors.white10,
+                                      child: const Icon(Icons.sports_esports,
+                                          color: Colors.white54, size: 20),
+                                    ),
+                                  )
+                                : Container(
+                                    width: 36,
+                                    height: 36,
+                                    color: Colors.white10,
+                                    child: const Icon(Icons.sports_esports,
+                                        color: Colors.white54, size: 20),
+                                  ),
                           ),
                           title: Text(
                             game.name,
@@ -1259,33 +1339,33 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                           color: Colors.white.withOpacity(0.05)),
                                     ),
                                     child: Column(
-  crossAxisAlignment: CrossAxisAlignment.start,
-  children: [
-    _buildDetailRowRight(
-        'ID:', '#${patch.id}'),
-    _buildDetailRowRight(
-        'ชื่อ:', patch.title),
-    _buildDetailRowRight(
-        'หมวดหมู่:',
-        patch.category.isEmpty
-            ? 'General'
-            : patch.category),
-    _buildDetailRowRight(
-        'เป้าหมาย:',
-        patch.bundleID.isEmpty
-            ? 'All Games (ทุกเกม)'
-            : patch.bundleID),
-    _buildDetailRowRight(
-        'อัปเดตเมื่อ:',
-        formatThaiTimeAgo(patch.updatedAt)),
-    _buildDetailRowRight(
-      'สถานะ:',
-      patch.active
-          ? 'ใช้งานอยู่'
-          : 'ปิดปรับปรุง',
-    ),
-  ],
-),
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        _buildDetailRowRight(
+                                            'ID:', '#${patch.id}'),
+                                        _buildDetailRowRight(
+                                            'ชื่อ:', patch.title),
+                                        _buildDetailRowRight(
+                                            'หมวดหมู่:',
+                                            patch.category.isEmpty
+                                                ? 'General'
+                                                : patch.category),
+                                        _buildDetailRowRight(
+                                            'เป้าหมาย:',
+                                            patch.bundleID.isEmpty
+                                                ? 'All Games (ทุกเกม)'
+                                                : patch.bundleID),
+                                        _buildDetailRowRight(
+                                            'อัปเดตเมื่อ:',
+                                            formatThaiTimeAgo(patch.updatedAt)),
+                                        _buildDetailRowRight(
+                                          'สถานะ:',
+                                          patch.active
+                                              ? 'ใช้งานอยู่'
+                                              : 'ปิดปรับปรุง',
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                   const SizedBox(height: 8),
                                   Row(
