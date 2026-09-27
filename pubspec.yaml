@@ -16,6 +16,7 @@ dependencies:
   intl: ^0.20.2 # 🟢 เพิ่มแพ็กเกจจัดการ DateFormat และภาษา
   shared_preferences: ^2.5.3 # 🟢 เพิ่มสำหรับจัดการ Local Storage / Auth Token
   file_picker: ^10.3.8 # 🟢 เพิ่มสำหรับเลือกไฟล์ .ipa ในเครื่อง
+  timeago: ^3.7.0 # 🟢 เพิ่มสำหรับเปลี่ยนเวลาเป็นภาษาไทย (เช่น เมื่อสักครู่, 15 นาทีที่ผ่านมา)
 
   # 🟢 UI / FX & Animations
   lottie: ^3.5.1
