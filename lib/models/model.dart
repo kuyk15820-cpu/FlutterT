@@ -59,11 +59,13 @@ class TargetGame {
   final String name;
   final String bundleID;
   final bool active;
+  final String? updatedAt; // 🟢 เพิ่ม updatedAt
 
   TargetGame({
     required this.name,
     required this.bundleID,
     this.active = true,
+    this.updatedAt, // 🟢 เพิ่มใส่ใน constructor
   });
 
   factory TargetGame.fromJson(Map<String, dynamic> json) {
@@ -71,6 +73,7 @@ class TargetGame {
       name: json['name'] ?? '',
       bundleID: json['bundleID'] ?? '',
       active: json['active'] ?? true,
+      updatedAt: json['updatedAt'] ?? json['updated_at'], // 🟢 อ่านค่าจาก json
     );
   }
 
@@ -79,6 +82,7 @@ class TargetGame {
       'name': name,
       'bundleID': bundleID,
       'active': active,
+      'updatedAt': updatedAt,
     };
   }
 
