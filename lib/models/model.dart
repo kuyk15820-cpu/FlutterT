@@ -58,22 +58,25 @@ class AppVersionConfig {
 class TargetGame {
   final String name;
   final String bundleID;
+  final String? icon; // 🟢 เพิ่ม icon (URL หรือ Path)
   final bool active;
-  final String? updatedAt; // 🟢 เพิ่ม updatedAt
+  final String? updatedAt;
 
   TargetGame({
     required this.name,
     required this.bundleID,
+    this.icon, // 🟢 เพิ่มใน constructor
     this.active = true,
-    this.updatedAt, // 🟢 เพิ่มใส่ใน constructor
+    this.updatedAt,
   });
 
   factory TargetGame.fromJson(Map<String, dynamic> json) {
     return TargetGame(
       name: json['name'] ?? '',
       bundleID: json['bundleID'] ?? '',
+      icon: json['icon'], // 🟢 ดึงค่า icon จาก JSON
       active: json['active'] ?? true,
-      updatedAt: json['updatedAt'] ?? json['updated_at'], // 🟢 อ่านค่าจาก json
+      updatedAt: json['updatedAt'] ?? json['updated_at'],
     );
   }
 
@@ -81,6 +84,7 @@ class TargetGame {
     return {
       'name': name,
       'bundleID': bundleID,
+      'icon': icon, // 🟢 ส่งค่า icon แปลงกลับเป็น JSON
       'active': active,
       'updatedAt': updatedAt,
     };
