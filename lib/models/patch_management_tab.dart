@@ -1259,34 +1259,33 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                           color: Colors.white.withOpacity(0.05)),
                                     ),
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        _buildDetailRowRight(
-                                            'ID:', #patch.id),
-                                        _buildDetailRowRight(
-                                            'ชื่อ:', patch.title),
-                                        _buildDetailRowRight(
-                                            'หมวดหมู่:',
-                                            patch.category.isEmpty
-                                                ? 'General'
-                                                : patch.category),
-                                        _buildDetailRowRight(
-                                            'เป้าหมาย:',
-                                            patch.bundleID.isEmpty
-                                                ? 'All Games (ทุกเกม)'
-                                                : patch.bundleID),
-                                        _buildDetailRowRight(
-                                            'อัปเดตเมื่อ:',
-                                            formatThaiTimeAgo(patch.updatedAt)),
-                                        _buildDetailRowRight(
-                                          'สถานะ:',
-                                          patch.active
-                                              ? 'ใช้งานอยู่'
-                                              : 'ปิดปรับปรุง',
-                                        ),
-                                      ],
-                                    ),
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    _buildDetailRowRight(
+        'ID:', '#${patch.id}'),
+    _buildDetailRowRight(
+        'ชื่อ:', patch.title),
+    _buildDetailRowRight(
+        'หมวดหมู่:',
+        patch.category.isEmpty
+            ? 'General'
+            : patch.category),
+    _buildDetailRowRight(
+        'เป้าหมาย:',
+        patch.bundleID.isEmpty
+            ? 'All Games (ทุกเกม)'
+            : patch.bundleID),
+    _buildDetailRowRight(
+        'อัปเดตเมื่อ:',
+        formatThaiTimeAgo(patch.updatedAt)),
+    _buildDetailRowRight(
+      'สถานะ:',
+      patch.active
+          ? 'ใช้งานอยู่'
+          : 'ปิดปรับปรุง',
+    ),
+  ],
+),
                                   ),
                                   const SizedBox(height: 8),
                                   Row(
