@@ -1,8 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:fw_tab_bar/fw_tab_bar.dart';
-import 'package:timeago/timeago.dart' as timeago; // 🟢 Import timeago
+import 'package:timeago/timeago.dart' as timeago;
 import '../models/model.dart';
 import '../services/api_service.dart';
 
@@ -464,8 +463,8 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
     );
   }
 
-  // Widget แสดงข้อมูลแบบจัดชิดขวา
-  Widget _buildDetailRowRight(String label, Widget valueWidget) {
+  // Widget แสดงข้อมูลแบบจัดชิดขวา แบบปรับปรุงแบบตัวอักษรมาตรฐาน
+  Widget _buildDetailRowRight(String label, String valueText) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -474,12 +473,18 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
         children: [
           Text(
             label,
-            style: const TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.w500),
+            style: const TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.normal),
           ),
           Flexible(
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: valueWidget,
+            child: Text(
+              valueText,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.normal,
+              ),
+              textAlign: TextAlign.end,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -512,22 +517,30 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
     );
   }
 
-  // Widget สำหรับสร้าง FWTabBar เพื่อให้เรียกใช้ได้ง่าย
-  Widget _buildFWTabBar() {
+  // 🟢 TabBar มาตรฐาน Flutter รูปทรง Card สวยงามความกว้างเท่ากับ Card หลัก
+  Widget _buildStandardTabBar() {
     return Container(
-      height: 42,
-      padding: const EdgeInsets.all(3),
+      height: 48,
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white10),
       ),
-      child: TabBarWidget(
-        firstTab: 'Target Games',
-        secondTab: 'Patches Catalog',
-        onTabChanged: (int index) {
-          _tabController.animateTo(index);
-        },
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          color: Colors.blueAccent.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white54,
+        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        unselectedLabelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.normal),
+        tabs: const [
+          Tab(text: 'Target Games'),
+          Tab(text: 'Patches Catalog'),
+        ],
       ),
     );
   }
@@ -619,7 +632,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
           child: Column(
             children: [
-              _buildFWTabBar(),
+              _buildStandardTabBar(),
               if (_showSearch) ...[
                 const SizedBox(height: 8),
                 TextField(
@@ -676,10 +689,13 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                             backgroundColor: game.active
                                 ? Colors.green.withOpacity(0.2)
                                 : Colors.grey.withOpacity(0.2),
-                            child: Icon(
-                              game.active ? Icons.sports_esports : Icons.block,
-                              color: game.active ? Colors.greenAccent : Colors.grey,
-                              size: 16,
+                            child: Text(
+                              '#${index + 1}',
+                              style: TextStyle(
+                                color: game.active ? Colors.greenAccent : Colors.grey,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           title: Text(
@@ -691,7 +707,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                             ),
                           ),
                           subtitle: Text(
-                            game.bundleID,
+                            'อัปเดตล่าสุด: ${formatThaiTimeAgo(game.updatedAt)}',
                             style: const TextStyle(color: Colors.white38, fontSize: 11),
                           ),
                           trailing: _buildStatusCapsule(
@@ -713,36 +729,15 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        _buildDetailRowRight(
-                                          'ชื่อเกม:',
-                                          Text(
-                                            game.name,
-                                            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
-                                            textAlign: TextAlign.end,
-                                          ),
-                                        ),
-                                        _buildDetailRowRight(
-                                          'Bundle ID:',
-                                          Text(
-                                            game.bundleID,
-                                            style: const TextStyle(color: Colors.white, fontSize: 13, fontFamily: 'monospace'),
-                                            textAlign: TextAlign.end,
-                                          ),
-                                        ),
+                                        _buildDetailRowRight('ชื่อเกม:', game.name),
+                                        _buildDetailRowRight('Bundle ID:', game.bundleID),
                                         _buildDetailRowRight(
                                           'สถานะการทำงาน:',
-                                          InkWell(
-                                            onTap: () => _toggleGame(game.bundleID),
-                                            child: Text(
-                                              game.active ? 'เปิดใช้งาน (ACTIVE)' : 'ปิดใช้งาน (DISABLED)',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                              textAlign: TextAlign.end,
-                                            ),
-                                          ),
+                                          game.active ? 'เปิดใช้งาน (ACTIVE)' : 'ปิดใช้งาน (DISABLED)',
+                                        ),
+                                        _buildDetailRowRight(
+                                          'อัปเดตล่าสุด:',
+                                          formatThaiTimeAgo(game.updatedAt),
                                         ),
                                       ],
                                     ),
@@ -802,7 +797,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
           child: Column(
             children: [
-              _buildFWTabBar(),
+              _buildStandardTabBar(),
               if (_showSearch) ...[
                 const SizedBox(height: 8),
                 TextField(
@@ -860,14 +855,13 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                 ? Colors.blueAccent.withOpacity(0.2)
                                 : Colors.grey.withOpacity(0.2),
                             child: Text(
-                              patch.category.isNotEmpty
-                                  ? patch.category[0].toUpperCase()
-                                  : 'P',
+                              '#${patch.id}',
                               style: TextStyle(
                                 color: patch.active ? Colors.blueAccent : Colors.grey,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                                fontSize: 10,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           title: Text(
@@ -879,7 +873,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                             ),
                           ),
                           subtitle: Text(
-                            'ID: ${patch.id}',
+                            'อัปเดตล่าสุด: ${formatThaiTimeAgo(patch.updatedAt)}',
                             style: const TextStyle(color: Colors.white38, fontSize: 11),
                           ),
                           trailing: _buildStatusCapsule(
@@ -901,78 +895,14 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        _buildDetailRowRight(
-                                          'Patch ID:',
-                                          Text(
-                                            patch.id,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              fontFamily: 'monospace',
-                                            ),
-                                            textAlign: TextAlign.end,
-                                          ),
-                                        ),
-                                        _buildDetailRowRight(
-                                          'ชื่อ Patch:',
-                                          Text(
-                                            patch.title,
-                                            style: const TextStyle(color: Colors.white, fontSize: 13),
-                                            textAlign: TextAlign.end,
-                                          ),
-                                        ),
-                                        _buildDetailRowRight(
-                                          'หมวดหมู่:',
-                                          Text(
-                                            patch.category.isEmpty ? 'General' : patch.category,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                            textAlign: TextAlign.end,
-                                          ),
-                                        ),
-                                        _buildDetailRowRight(
-                                          'Target Bundle:',
-                                          Text(
-                                            patch.bundleID.isEmpty ? 'All Games (ทุกเกม)' : patch.bundleID,
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 13,
-                                              fontFamily: patch.bundleID.isEmpty ? null : 'monospace',
-                                            ),
-                                            textAlign: TextAlign.end,
-                                          ),
-                                        ),
-                                        // 🟢 แสดงเวลาอัปเดตภาษาไทยใน Card ย่อย
-                                        _buildDetailRowRight(
-                                          'อัปเดตล่าสุด:',
-                                          Text(
-                                            formatThaiTimeAgo(patch.updatedAt),
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 13,
-                                              fontFamily: 'monospace',
-                                            ),
-                                            textAlign: TextAlign.end,
-                                          ),
-                                        ),
+                                        _buildDetailRowRight('Patch ID:', patch.id),
+                                        _buildDetailRowRight('ชื่อ Patch:', patch.title),
+                                        _buildDetailRowRight('หมวดหมู่:', patch.category.isEmpty ? 'General' : patch.category),
+                                        _buildDetailRowRight('Target Bundle:', patch.bundleID.isEmpty ? 'All Games (ทุกเกม)' : patch.bundleID),
+                                        _buildDetailRowRight('อัปเดตล่าสุด:', formatThaiTimeAgo(patch.updatedAt)),
                                         _buildDetailRowRight(
                                           'สถานะ:',
-                                          InkWell(
-                                            onTap: () => _togglePatch(patch.id),
-                                            child: Text(
-                                              patch.active ? 'เปิดใช้งาน (ACTIVE)' : 'ปิดใช้งาน (DISABLED)',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                              textAlign: TextAlign.end,
-                                            ),
-                                          ),
+                                          patch.active ? 'เปิดใช้งาน (ACTIVE)' : 'ปิดใช้งาน (DISABLED)',
                                         ),
                                       ],
                                     ),
