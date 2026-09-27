@@ -1,16 +1,37 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:timeago/timeago.dart' as timeago; // 🟢 1. Import timeago
+import 'package:timeago/timeago.dart' as timeago;
 
 import 'models/app_version_admin_tab.dart'; 
 import 'models/patch_management_tab.dart'; 
 
+// 🟢 Custom Messages สำหรับภาษาไทยสไตล์ iOS
+class CustomIosThaiMessages implements timeago.LookupMessages {
+  @override String prefixAgo() => '';
+  @override String prefixFromNow() => '';
+  @override String suffixAgo() => '';
+  @override String suffixFromNow() => '';
+  
+  @override String lessThanOneMinute(int seconds) => 'เมื่อสักครู่';
+  @override String aboutAMinute(int minutes) => '1 นาทีที่ผ่านมา';
+  @override String minutes(int minutes) => '$minutes นาทีที่ผ่านมา';
+  @override String aboutAnHour(int minutes) => '1 ชั่วโมงที่ผ่านมา';
+  @override String hours(int hours) => '$hours ชั่วโมงที่ผ่านมา';
+  @override String aDay(int hours) => 'เมื่อวาน';
+  @override String days(int days) => '$days วันที่ผ่านมา';
+  @override String aboutAMonth(int days) => '1 เดือนที่ผ่านมา';
+  @override String months(int months) => '$months เดือนที่ผ่านมา';
+  @override String aboutAYear(int year) => '1 ปีที่ผ่านมา';
+  @override String years(int years) => '$years ปีที่ผ่านมา';
+  @override String wordSeparator() => ' ';
+}
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 🟢 2. ลงทะเบียนภาษาไทยให้ timeago
-  timeago.setLocaleMessages('th', timeago.ThMessages());
+  // 🟢 ลงทะเบียน CustomIosThaiMessages ให้กับคีย์ 'th'
+  timeago.setLocaleMessages('th', CustomIosThaiMessages());
   
   runApp(const MyApp());
 }
