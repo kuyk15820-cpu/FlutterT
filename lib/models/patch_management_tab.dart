@@ -2,8 +2,22 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:fw_tab_bar/fw_tab_bar.dart';
+import 'package:timeago/timeago.dart' as timeago; // 🟢 Import timeago
 import '../models/model.dart';
 import '../services/api_service.dart';
+
+// 🟢 Helper Function สำหรับแปลงเวลา ISO String เป็นเวลาภาษาไทย
+String formatThaiTimeAgo(String? isoDateTimeString) {
+  if (isoDateTimeString == null || isoDateTimeString.isEmpty) {
+    return '-';
+  }
+  try {
+    final dateTime = DateTime.parse(isoDateTimeString).toLocal();
+    return timeago.format(dateTime, locale: 'th');
+  } catch (e) {
+    return isoDateTimeString;
+  }
+}
 
 class PatchManagementScreen extends StatefulWidget {
   const PatchManagementScreen({Key? key}) : super(key: key);
@@ -512,7 +526,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
         firstTab: 'Target Games',
         secondTab: 'Patches Catalog',
         onTabChanged: (int index) {
-          // ซิงค์ index กับ TabController ที่คุณมีอยู่
           _tabController.animateTo(index);
         },
       ),
@@ -527,7 +540,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
         title: const Text('Patch & Game Manager', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white)),
         backgroundColor: const Color(0xFF1E1E1E),
         elevation: 0,
-        // เปลี่ยนสี Icon ทั้งหมดใน AppBar ให้เป็นสีขาวปกติ
         actions: [
           IconButton(
             icon: Icon(_showSearch ? Icons.search_off : Icons.search, color: Colors.white),
@@ -603,7 +615,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
 
     return Column(
       children: [
-        // FWTabBar และ Search Bar จัดวางในบริเวณเดียวกันแบบสมดุล
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
           child: Column(
@@ -639,8 +650,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
             ],
           ),
         ),
-
-        // List View with Main Card & Sub Card (ปรับระยะห่างให้ชิดสวยงาม)
         Expanded(
           child: filteredGames.isEmpty
               ? const Center(child: Text('ไม่พบข้อมูล Target Game', style: TextStyle(color: Colors.white38)))
@@ -650,7 +659,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                   itemBuilder: (context, index) {
                     final game = filteredGames[index];
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 8), // ปรับระยะห่างระหว่าง Card หลัก
+                      margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E1E1E),
                         borderRadius: BorderRadius.circular(12),
@@ -691,10 +700,9 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                           ),
                           children: [
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(10, 0, 10, 10), // ลดระยะห่าง Card ย่อย
+                              padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
                               child: Column(
                                 children: [
-                                  // Card ย่อยแสดงข้อมูล
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
@@ -721,7 +729,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                             textAlign: TextAlign.end,
                                           ),
                                         ),
-                                        // สถานะเปลี่ยนเป็น Text สีขาวปกติ ชิดขวา
                                         _buildDetailRowRight(
                                           'สถานะการทำงาน:',
                                           InkWell(
@@ -741,7 +748,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  // Action Buttons
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
@@ -792,7 +798,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
 
     return Column(
       children: [
-        // FWTabBar และ Search Bar จัดวางในบริเวณเดียวกันแบบสมดุล
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
           child: Column(
@@ -828,8 +833,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
             ],
           ),
         ),
-
-        // List View with Main Card & Sub Card
         Expanded(
           child: filteredPatches.isEmpty
               ? const Center(child: Text('ไม่พบข้อมูล Patch ในระบบ', style: TextStyle(color: Colors.white38)))
@@ -839,7 +842,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                   itemBuilder: (context, index) {
                     final patch = filteredPatches[index];
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 8), // ปรับระยะห่างระหว่าง Card หลัก
+                      margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1E1E1E),
                         borderRadius: BorderRadius.circular(12),
@@ -885,10 +888,9 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                           ),
                           children: [
                             Padding(
-                              padding: const EdgeInsets.fromLTRB(10, 0, 10, 10), // ลดระยะห่าง Card ย่อย
+                              padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
                               child: Column(
                                 children: [
-                                  // Card ย่อยแสดงข้อมูล (ใช้ Text สีขาวปกติทั้งหมด)
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
@@ -904,7 +906,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                           Text(
                                             patch.id,
                                             style: const TextStyle(
-                                              color: Colors.white, // ปรับเป็นสีขาวปกติ
+                                              color: Colors.white,
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
                                               fontFamily: 'monospace',
@@ -916,7 +918,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                           'ชื่อ Patch:',
                                           Text(
                                             patch.title,
-                                            style: const TextStyle(color: Colors.white, fontSize: 13), // ปรับเป็นสีขาวปกติ
+                                            style: const TextStyle(color: Colors.white, fontSize: 13),
                                             textAlign: TextAlign.end,
                                           ),
                                         ),
@@ -925,7 +927,7 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                           Text(
                                             patch.category.isEmpty ? 'General' : patch.category,
                                             style: const TextStyle(
-                                              color: Colors.white, // ปรับเป็นสีขาวปกติ
+                                              color: Colors.white,
                                               fontSize: 13,
                                               fontWeight: FontWeight.w500,
                                             ),
@@ -937,14 +939,26 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                           Text(
                                             patch.bundleID.isEmpty ? 'All Games (ทุกเกม)' : patch.bundleID,
                                             style: TextStyle(
-                                              color: Colors.white, // ปรับเป็นสีขาวปกติ
+                                              color: Colors.white,
                                               fontSize: 13,
                                               fontFamily: patch.bundleID.isEmpty ? null : 'monospace',
                                             ),
                                             textAlign: TextAlign.end,
                                           ),
                                         ),
-                                        // สถานะใน Card ย่อยเปลี่ยนเป็น Text สีขาวปกติ
+                                        // 🟢 แสดงเวลาอัปเดตภาษาไทยใน Card ย่อย
+                                        _buildDetailRowRight(
+                                          'อัปเดตล่าสุด:',
+                                          Text(
+                                            formatThaiTimeAgo(patch.updatedAt),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 13,
+                                              fontFamily: 'monospace',
+                                            ),
+                                            textAlign: TextAlign.end,
+                                          ),
+                                        ),
                                         _buildDetailRowRight(
                                           'สถานะ:',
                                           InkWell(
@@ -964,7 +978,6 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  // Action Buttons
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
