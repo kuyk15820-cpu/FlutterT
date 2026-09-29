@@ -57,64 +57,15 @@ jobs:
           rm -f pubspec.lock
           flutter pub get
 
-      # 3. สร้าง ios/Podfile มาตรฐานที่ไม่มี RunnerTests ป้องกัน Flutter Auto-Migration พัง
-      - name: Create Clean Podfile
-        run: |
-          mkdir -p ios
-          cat << 'EOF' > ios/Podfile
-          platform :ios, '15.0'
-          ENV['COCOAPODS_DISABLE_STATS'] = 'true'
-
-          project 'Runner', {
-            'Debug' => :debug,
-            'Profile' => :release,
-            'Release' => :release,
-          }
-
-          def flutter_root
-            generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
-            unless File.exist?(generated_xcode_build_settings_path)
-              raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
-            end
-
-            File.foreach(generated_xcode_build_settings_path) do |line|
-              matches = line.match(/FLUTTER_ROOT\=(.*)/)
-              return matches[1].strip if matches
-            end
-            raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig and running flutter pub get"
-          end
-
-          require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
-
-          flutter_ios_podfile_setup
-
-          target 'Runner' do
-            use_frameworks!
-            use_modular_headers!
-
-            flutter_install_ios_engine
-            pod_install_additional_ios_bundles
-          end
-
-          post_install do |installer|
-            installer.pods_project.targets.each do |target|
-              flutter_additional_ios_build_settings(target)
-            end
-          end
-          EOF
-
-      # 🟢 [จุดที่แก้ไข] รัน pod install โดยตรง ข้าม flutter build ios เพื่อไม่ให้ติดเรื่อง Code Signing Certificate
+      # 🟢 [จุดแก้ไข] สั่ง Flutter ให้เตรียมไฟล์ Native โดยปิด Code Signing เพื่อไม่ให้ติด Error เรื่อง Certificate
       - name: Prepare iOS Native Configs
-        run: |
-          cd ios
-          pod install
-          cd ..
+        run: flutter build ios --release --no-codesign
 
       # แสดง Log รายชื่อ Package ทั้งหมด
       - name: Check Dependencies Outdated
         run: flutter pub outdated --show-all
 
-      # 4. ปรับแต่ง App Name, Bundle ID และ Version ใน Xcode Project ของ Flutter (Runner.xcodeproj)
+      # 3. ปรับแต่ง App Name, Bundle ID และ Version ใน Xcode Project ของ Flutter (Runner.xcodeproj)
       - name: Update iOS Metadata
         env:
           APP_NAME: ${{ github.event.inputs.app_name || 'FX-Dash' }}
@@ -157,13 +108,13 @@ jobs:
           puts "Successfully updated project build settings!"
           EOF
 
-      # 5. สั่งรัน build_ipa.sh จาก Root ของโปรเจกต์
+      # 4. สั่งรัน build_ipa.sh จาก Root ของโปรเจกต์
       - name: Run Build Script
         run: |
           chmod +x build_ipa.sh
           ./build_ipa.sh
 
-      # 6. ย้ายไฟล์ .ipa ออกมาไว้ที่ Root build_output/ เพื่อดึง Artifact
+      # 5. ย้ายไฟล์ .ipa ออกมาไว้ที่ Root build_output/ เพื่อดึง Artifact
       - name: Prepare Artifact Directory
         run: |
           mkdir -p build_output
