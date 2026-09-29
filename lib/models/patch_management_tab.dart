@@ -22,10 +22,12 @@ class PatchManagementScreen extends StatefulWidget {
   const PatchManagementScreen({Key? key}) : super(key: key);
 
   @override
-  State<PatchManagementScreen> createState() => _PatchManagementScreenState();
+  // 🟢 เปลี่ยนตรงนี้เอา _ ออก
+  PatchManagementScreenState createState() => PatchManagementScreenState(); 
 }
 
-class _PatchManagementScreenState extends State<PatchManagementScreen>
+// 🟢 เปลี่ยนตรงนี้เอา _ ออก
+class PatchManagementScreenState extends State<PatchManagementScreen> 
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -44,6 +46,11 @@ class _PatchManagementScreenState extends State<PatchManagementScreen>
   List<PatchItem> _patchesList = [];
   bool _isLoadingPatches = false;
   String _patchSearchQuery = '';
+
+  // 🟢 เพิ่มฟังก์ชันนี้เพื่อรองรับ Pusher Real-time จาก GlobalKey
+  void fetchData() {
+    _loadAllData();
+  }
 
   @override
   void initState() {
