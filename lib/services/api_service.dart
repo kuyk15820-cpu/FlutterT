@@ -1,11 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:pusher_channels_flutter/pusher_channels_flutter.dart';
 import '../models/model.dart';
 
 class ApiService {
   static const String baseUrl = 'https://f1x3r.org/pv';
   static const String patchesBaseUrl = 'https://f1x3r.org/patches';
+
+  // Pusher Instance
+  static PusherChannelsFlutter? _pusher;
 
   // Helper Header สำหรับ Request ทั่วไป
   static Map<String, String> get _defaultHeaders => {
@@ -19,13 +23,59 @@ class ApiService {
   }
 
   // ==================================================================
+  // REAL-TIME PUSHER SERVICE
+  // ==================================================================
+
+  /// เริ่มต้นการเชื่อมต่อ Pusher และลงทะเบียน Callback เมื่อมีการอัปเดตข้อมูล
+  static Future<void> initPusherListener({
+    required Function() onPatchUpdated,
+    required Function() onGameUpdated,
+    required Function() onAppVersionUpdated,
+  }) async {
+    _pusher = PusherChannelsFlutter.getInstance();
+
+    try {
+      await _pusher!.init(
+        apiKey: 'd039276dccb8ee34ef19',
+        cluster: 'ap1',
+        onEvent: (PusherEvent event) {
+          switch (event.eventName) {
+            case 'patch_updated':
+              onPatchUpdated();
+              break;
+            case 'game_updated':
+              onGameUpdated();
+              break;
+            case 'app_version_updated':
+              onAppVersionUpdated();
+              break;
+          }
+        },
+      );
+
+      await _pusher!.subscribe(channelName: 'patch-channel');
+      await _pusher!.connect();
+    } catch (e) {
+      print('Pusher Init Error: $e');
+    }
+  }
+
+  /// ยกเลิกการเชื่อมต่อ Pusher (ใช้เรียกตอน dispose หน้าจอ)
+  static Future<void> disconnectPusher() async {
+    if (_pusher != null) {
+      await _pusher!.unsubscribe(channelName: 'patch-channel');
+      await _pusher!.disconnect();
+    }
+  }
+
+  // ==================================================================
   // APP VERSION MANAGEMENT API
   // ==================================================================
 
   /// ดึงข้อมูลการตั้งค่าเวอร์ชันแอปปัจจุบัน
   static Future<AppVersionConfig> fetchAppVersion() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/get_version_admin.php'),
+      Uri.parse('$baseUrl/get_version_admin.php?t=${DateTime.now().millisecondsSinceEpoch}'),
       headers: _defaultHeaders,
     );
 
@@ -87,7 +137,7 @@ class ApiService {
   /// ดึงรายการ Target Games ทั้งหมด
   static Future<List<TargetGame>> fetchGames() async {
     final response = await http.get(
-      Uri.parse('$patchesBaseUrl/games.json'),
+      Uri.parse('$patchesBaseUrl/games.json?t=${DateTime.now().millisecondsSinceEpoch}'),
       headers: _defaultHeaders,
     );
 
@@ -99,7 +149,7 @@ class ApiService {
     }
   }
 
-    /// เพิ่ม หรือแก้ไข Target Game (รองรับทั้ง Icon URL และ ไฟล์อัปโหลด)
+  /// เพิ่ม หรือแก้ไข Target Game (รองรับทั้ง Icon URL และ ไฟล์อัปโหลด)
   static Future<bool> addOrUpdateGame({
     required String gameName,
     required String bundleID,
@@ -140,7 +190,7 @@ class ApiService {
   /// เปิด / ปิด การใช้งาน Target Game รายตัว
   static Future<bool> toggleGameStatus(String bundleID) async {
     final response = await http.get(
-      Uri.parse('$patchesBaseUrl/save3.php?action=toggle_game&bundle_id=${Uri.encodeComponent(bundleID)}&api=1'),
+      Uri.parse('$patchesBaseUrl/save3.php?action=toggle_game&bundle_id=${Uri.encodeComponent(bundleID)}&api=1&t=${DateTime.now().millisecondsSinceEpoch}'),
       headers: _defaultHeaders,
     );
 
@@ -157,7 +207,7 @@ class ApiService {
   static Future<bool> toggleAllGamesStatus(bool status) async {
     final statusCode = status ? '1' : '0';
     final response = await http.get(
-      Uri.parse('$patchesBaseUrl/save3.php?action=toggle_all_games&status=$statusCode&api=1'),
+      Uri.parse('$patchesBaseUrl/save3.php?action=toggle_all_games&status=$statusCode&api=1&t=${DateTime.now().millisecondsSinceEpoch}'),
       headers: _defaultHeaders,
     );
 
@@ -173,7 +223,7 @@ class ApiService {
   /// ลบ Target Game
   static Future<bool> deleteGame(String bundleID) async {
     final response = await http.get(
-      Uri.parse('$patchesBaseUrl/save3.php?action=delete_game&bundle_id=${Uri.encodeComponent(bundleID)}&api=1'),
+      Uri.parse('$patchesBaseUrl/save3.php?action=delete_game&bundle_id=${Uri.encodeComponent(bundleID)}&api=1&t=${DateTime.now().millisecondsSinceEpoch}'),
       headers: _defaultHeaders,
     );
 
@@ -193,7 +243,7 @@ class ApiService {
   /// ดึงรายการ Patch ทั้งหมด
   static Future<List<PatchItem>> fetchPatches() async {
     final response = await http.get(
-      Uri.parse('$patchesBaseUrl/catalog.json'),
+      Uri.parse('$patchesBaseUrl/catalog.json?t=${DateTime.now().millisecondsSinceEpoch}'),
       headers: _defaultHeaders,
     );
 
@@ -205,9 +255,9 @@ class ApiService {
     }
   }
 
-    /// เพิ่ม Patch ใหม่ ( Server จะเจน ID ตัวเลขให้อัตโนมัติ)
+  /// เพิ่ม Patch ใหม่ (Server จะเจน ID ตัวเลขให้อัตโนมัติ)
   static Future<bool> addPatch({
-    String? id, // 🟢 ปรับเป็น optional (หรือใส่หรือไม่ใส่ก็ได้)
+    String? id,
     required String title,
     required String category,
     required String bundleID,
@@ -284,7 +334,7 @@ class ApiService {
   /// เปิด / ปิด การใช้งาน Patch รายตัว
   static Future<bool> togglePatchStatus(String id) async {
     final response = await http.get(
-      Uri.parse('$patchesBaseUrl/save3.php?action=toggle&id=${Uri.encodeComponent(id)}&api=1'),
+      Uri.parse('$patchesBaseUrl/save3.php?action=toggle&id=${Uri.encodeComponent(id)}&api=1&t=${DateTime.now().millisecondsSinceEpoch}'),
       headers: _defaultHeaders,
     );
 
@@ -301,7 +351,7 @@ class ApiService {
   static Future<bool> toggleAllPatchesStatus(bool status) async {
     final statusCode = status ? '1' : '0';
     final response = await http.get(
-      Uri.parse('$patchesBaseUrl/save3.php?action=toggle_all_patches&status=$statusCode&api=1'),
+      Uri.parse('$patchesBaseUrl/save3.php?action=toggle_all_patches&status=$statusCode&api=1&t=${DateTime.now().millisecondsSinceEpoch}'),
       headers: _defaultHeaders,
     );
 
@@ -317,7 +367,7 @@ class ApiService {
   /// ลบ Patch
   static Future<bool> deletePatch(String id) async {
     final response = await http.get(
-      Uri.parse('$patchesBaseUrl/save3.php?action=delete&id=${Uri.encodeComponent(id)}&api=1'),
+      Uri.parse('$patchesBaseUrl/save3.php?action=delete&id=${Uri.encodeComponent(id)}&api=1&t=${DateTime.now().millisecondsSinceEpoch}'),
       headers: _defaultHeaders,
     );
 
