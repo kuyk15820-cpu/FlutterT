@@ -5,6 +5,7 @@ import 'package:timeago/timeago.dart' as timeago;
 
 import 'models/app_version_admin_tab.dart'; 
 import 'models/patch_management_tab.dart'; 
+import 'services/api_service.dart'; // 🟢 Import ApiService เข้ามา
 
 // 🟢 Custom Messages สำหรับภาษาไทยสไตล์ iOS
 class CustomIosThaiMessages implements timeago.LookupMessages {
@@ -67,6 +68,38 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
 
+  // 🟢 สร้าง GlobalKey เพื่อดึง State ของหน้าลูกสั่งให้ reload ข้อมูลเมื่อมี Event เข้ามา
+  final GlobalKey<AppVersionAdminScreenState> _appVersionKey = GlobalKey();
+  final GlobalKey<PatchManagementScreenState> _patchManagementKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 🟢 เริ่มดักฟัง Pusher Real-time Events
+    ApiService.initPusherListener(
+      onPatchUpdated: () {
+        // สั่งให้หน้า PatchManagementScreen ดึงข้อมูล Patch ใหม่
+        _patchManagementKey.currentState?.fetchData();
+      },
+      onGameUpdated: () {
+        // สั่งให้หน้า PatchManagementScreen ดึงข้อมูล Games ใหม่
+        _patchManagementKey.currentState?.fetchData();
+      },
+      onAppVersionUpdated: () {
+        // สั่งให้หน้า AppVersionAdminScreen ดึงข้อมูล App Version ใหม่
+        _appVersionKey.currentState?.fetchData();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    // 🟢 ตัดการเชื่อมต่อ Pusher เมื่อปิดแอปหรือทำลาย Widget
+    ApiService.disconnectPusher();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
@@ -90,9 +123,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           SafeArea(
             child: IndexedStack(
               index: _selectedIndex,
-              children: const [
-                AppVersionAdminScreen(),
-                PatchManagementScreen(),
+              children: [
+                AppVersionAdminScreen(key: _appVersionKey),
+                PatchManagementScreen(key: _patchManagementKey),
               ],
             ),
           ),
