@@ -17,6 +17,7 @@ dependencies:
   shared_preferences: ^2.5.3 # 🟢 เพิ่มสำหรับจัดการ Local Storage / Auth Token
   file_picker: ^10.3.8 # 🟢 เพิ่มสำหรับเลือกไฟล์ .ipa ในเครื่อง
   timeago: ^3.7.0 # 🟢 เพิ่มสำหรับเปลี่ยนเวลาเป็นภาษาไทย (เช่น เมื่อสักครู่, 15 นาทีที่ผ่านมา)
+  pusher_channels_flutter: ^2.6.0 # 🟢 เพิ่มสำหรับจัดการ Real-time Events ผ่าน Pusher
 
   # 🟢 UI / FX & Animations
   lottie: ^3.5.1
