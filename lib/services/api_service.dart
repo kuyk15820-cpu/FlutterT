@@ -36,7 +36,7 @@ class ApiService {
 
     try {
       await _pusher!.init(
-        apiKey: 'd039276dccb8ee34ef19',
+        apiKey: '0df154419e38e8efa9f2',
         cluster: 'ap1',
         onEvent: (PusherEvent event) {
           switch (event.eventName) {
