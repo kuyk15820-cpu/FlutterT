@@ -57,9 +57,55 @@ jobs:
           rm -f pubspec.lock
           flutter pub get
 
-      # 🟢 เปลี่ยนใช้ --simulator เพื่อสร้าง Podfile, Pods และ Native Configs โดยไม่ติดบล็อก Development Team
+      # 🟢 [จุดที่แก้ไข 1] สร้าง ios/Podfile มาตรฐานที่ไม่มี RunnerTests ป้องกัน Flutter Auto-Migration พัง
+      - name: Create Clean Podfile
+        run: |
+          mkdir -p ios
+          cat << 'EOF' > ios/Podfile
+          platform :ios, '15.0'
+          ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+          project 'Runner', {
+            'Debug' => :debug,
+            'Profile' => :release,
+            'Release' => :release,
+          }
+
+          def flutter_root
+            generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+            unless File.exist?(generated_xcode_build_settings_path)
+              raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+            end
+
+            File.foreach(generated_xcode_build_settings_path) do |line|
+              matches = line.match(/FLUTTER_ROOT\=(.*)/)
+              return matches[1].strip if matches
+            end
+            raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig and running flutter pub get"
+          end
+
+          require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+          flutter_ios_podfile_setup
+
+          target 'Runner' do
+            use_frameworks!
+            use_modular_headers!
+
+            flutter_install_ios_engine
+            pod_install_additional_ios_bundles
+          end
+
+          post_install do |installer|
+            installer.pods_project.targets.each do |target|
+              flutter_additional_ios_build_settings(target)
+            end
+          end
+          EOF
+
+      # 🟢 [จุดที่แก้ไข 2] เปลี่ยนมาใช้ --config-only เพื่อให้ Flutter เจน Native Configs / CocoaPods โดยไม่ต้องสั่งรัน Build จำลอง
       - name: Prepare iOS Native Configs
-        run: flutter build ios --simulator
+        run: flutter build ios --config-only
 
       # แสดง Log รายชื่อ Package ทั้งหมด
       - name: Check Dependencies Outdated
