@@ -57,7 +57,7 @@ jobs:
           rm -f pubspec.lock
           flutter pub get
 
-      # 🟢 [จุดที่แก้ไข 1] สร้าง ios/Podfile มาตรฐานที่ไม่มี RunnerTests ป้องกัน Flutter Auto-Migration พัง
+      # 3. สร้าง ios/Podfile มาตรฐานที่ไม่มี RunnerTests ป้องกัน Flutter Auto-Migration พัง
       - name: Create Clean Podfile
         run: |
           mkdir -p ios
@@ -103,15 +103,18 @@ jobs:
           end
           EOF
 
-      # 🟢 [จุดที่แก้ไข 2] เปลี่ยนมาใช้ --config-only เพื่อให้ Flutter เจน Native Configs / CocoaPods โดยไม่ต้องสั่งรัน Build จำลอง
+      # 🟢 [จุดที่แก้ไข] รัน pod install โดยตรง ข้าม flutter build ios เพื่อไม่ให้ติดเรื่อง Code Signing Certificate
       - name: Prepare iOS Native Configs
-        run: flutter build ios --config-only
+        run: |
+          cd ios
+          pod install
+          cd ..
 
       # แสดง Log รายชื่อ Package ทั้งหมด
       - name: Check Dependencies Outdated
         run: flutter pub outdated --show-all
 
-      # 3. ปรับแต่ง App Name, Bundle ID และ Version ใน Xcode Project ของ Flutter (Runner.xcodeproj)
+      # 4. ปรับแต่ง App Name, Bundle ID และ Version ใน Xcode Project ของ Flutter (Runner.xcodeproj)
       - name: Update iOS Metadata
         env:
           APP_NAME: ${{ github.event.inputs.app_name || 'FX-Dash' }}
@@ -154,13 +157,13 @@ jobs:
           puts "Successfully updated project build settings!"
           EOF
 
-      # 4. สั่งรัน build_ipa.sh จาก Root ของโปรเจกต์
+      # 5. สั่งรัน build_ipa.sh จาก Root ของโปรเจกต์
       - name: Run Build Script
         run: |
           chmod +x build_ipa.sh
           ./build_ipa.sh
 
-      # 5. ย้ายไฟล์ .ipa ออกมาไว้ที่ Root build_output/ เพื่อดึง Artifact
+      # 6. ย้ายไฟล์ .ipa ออกมาไว้ที่ Root build_output/ เพื่อดึง Artifact
       - name: Prepare Artifact Directory
         run: |
           mkdir -p build_output
