@@ -8,10 +8,12 @@ class AppVersionAdminScreen extends StatefulWidget {
   const AppVersionAdminScreen({Key? key}) : super(key: key);
 
   @override
-  State<AppVersionAdminScreen> createState() => _AppVersionAdminScreenState();
+  // 🟢 เปลี่ยนเอา _ ออก
+  AppVersionAdminScreenState createState() => AppVersionAdminScreenState();
 }
 
-class _AppVersionAdminScreenState extends State<AppVersionAdminScreen> {
+// 🟢 เปลี่ยนเอา _ ออก
+class AppVersionAdminScreenState extends State<AppVersionAdminScreen> {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
@@ -27,6 +29,11 @@ class _AppVersionAdminScreenState extends State<AppVersionAdminScreen> {
   
   bool _isLoading = true;
   bool _isSaving = false;
+
+  // 🟢 เพิ่มฟังก์ชันนี้เพื่อรองรับการเรียกจาก GlobalKey ใน MainNavigationScreen
+  void fetchData() {
+    _loadCurrentVersionData();
+  }
 
   @override
   void initState() {
